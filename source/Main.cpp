@@ -7,18 +7,25 @@
 
 std::atomic<bool> running = true;
 GalvoSimulator simulator;
-LaserFrame GeneratePointSequence(float x, float y);
+LaserFrame GeneratePointSequence(float x, float y, float hue);
 
-void GalvoThread()
+//void GalvoThread()
+//{
+//    // 30,000 Hz -> 33.333 microseconds per sample
+//    const float dt = 1.0f / 300.0f;
+//
+//    while (running)
+//    {
+//        simulator.Step(dt);
+//        Sleep(0); // yield (Windows can't sleep 33 µs, but it's okay)
+//    }
+//}
+
+void UpdateHue(float& hue, float amount)
 {
-    // 30,000 Hz -> 33.333 microseconds per sample
-    const float dt = 1.0f / 30000.0f;
-
-    while (running)
-    {
-        simulator.Step(dt);
-        Sleep(0); // yield (Windows can't sleep 33 µs, but it's okay)
-    }
+    hue += amount;              // increment
+    if (hue >= 360.0f)        // wrap around
+        hue -= 360.0f;
 }
 
 
@@ -60,18 +67,19 @@ int WINAPI wWinMain(
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-    std::thread galvo(GalvoThread);
-    galvo.detach();
+    //std::thread galvo(GalvoThread);
+    //galvo.detach();
 
 
     // message + render loop
     FrameRenderer renderer(hwnd);
-    GalvoSimulator galvoSim;
     MSG msg;
-    bool running = true;
+    //bool running = true;
     int mouseX = 0;
     int mouseY = 0;
-    LaserFrame prevframe;
+	float hue = 0.0f;
+    RenderFrame renderFrame;
+    RenderFrame prevframe;
     while (running)
     {
         // pump messages
@@ -97,13 +105,15 @@ int WINAPI wWinMain(
         if (!running) break;
 
         // generate frame (replace with UDP receiver later)
-
-        LaserFrame lframe = GeneratePointSequence(mouseX, mouseY);
-        galvoSim.LoadFrame(lframe);
+        UpdateHue(hue, 1.0f);
+        LaserFrame lframe = GeneratePointSequence(mouseX, mouseY, hue);
+        simulator.LoadFrame(std::move(lframe));
+        for(int i = 0; i < 1000; i++)
+			simulator.Step(1.0f / 1000.0f);
 
         // render frame
-        renderer.RenderFrame(lframe, prevframe);
-        prevframe = lframe;
+        renderer.DrawFrame(simulator.getRenderFrame(), prevframe);
+        prevframe = simulator.getRenderFrame();
 
         // simple frame cap ~60Hz (cooperative)
         Sleep(1);

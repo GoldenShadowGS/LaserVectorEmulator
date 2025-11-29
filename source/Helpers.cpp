@@ -1,8 +1,6 @@
 #include "Helpers.h"
 #include <algorithm>
 
-struct RGB { int r, g, b; };
-
 RGB HSVtoRGB(float H, float S, float V)
 {
     float C = V * S;               // chroma

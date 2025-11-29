@@ -9,7 +9,7 @@ public:
     FrameRenderer(HWND hwnd);
     ~FrameRenderer();
     void OnResize(int width, int height);
-    void RenderFrame(const LaserFrame& currentframe, const LaserFrame& previousframe);
+    void DrawFrame(const RenderFrame& currentframe, const RenderFrame& previousframe);
 
 private:
     void SimToScreen(float x, float y, int& outX, int& outY);

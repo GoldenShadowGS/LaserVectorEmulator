@@ -1,6 +1,7 @@
 #include "GalvoSimulator.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 GalvoSimulator::GalvoSimulator()
 {
@@ -21,23 +22,24 @@ GalvoSimulator::GalvoSimulator()
     frameIndex = 0;
 }
 
-void GalvoSimulator::LoadFrame(const LaserFrame& lF)
+void GalvoSimulator::LoadFrame(LaserFrame&& lF)
 {
     std::lock_guard<std::mutex> lock(mtx);
-    laserFrame = lF;
-    renderFrame.clear();
-    renderFrame.reserve(laserFrame.size());
+    //std::cout << "Loading frame, size=" << lF.size() << std::endl;
+    lFrame = std::move(lF);
+    rFrame.clear();
+    rFrame.reserve(lFrame.size());
     frameIndex = 0;
 }
 
 void GalvoSimulator::Step(float dt)
 {
     std::lock_guard<std::mutex> lock(mtx);
-    if (laserFrame.empty())
+    if (lFrame.empty())
         return;
 
     // get target
-    const LaserPoint& target = laserFrame[frameIndex];
+    const LaserPoint& target = lFrame[frameIndex];
     float txa = ConvertAngle(target.x);
     float tya = ConvertAngle(target.y);
     // spring-damper model
@@ -71,12 +73,12 @@ void GalvoSimulator::Step(float dt)
     if (AngleY < -maxAngle)
         AngleY = -maxAngle;
 
-    renderFrame.push_back({ GetXPosition(), GetYPosition(), target.r, target.g, target.b, target.flags });
+    rFrame.push_back({ GetXPosition(), GetYPosition(), target.r, target.g, target.b, target.flags });
 
     // advance to next target point
     if ((dx * dx + dy * dy) < toleranceSq)
     {
-        frameIndex = (frameIndex + 1) % laserFrame.size();
+        frameIndex = (frameIndex + 1) % lFrame.size();
     }
 }
 
@@ -92,4 +94,10 @@ float GalvoSimulator::GetXPosition() const
 float GalvoSimulator::GetYPosition() const
 {
     return sin(AngleY);
+}
+
+RenderFrame GalvoSimulator::getRenderFrame()
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    return rFrame;
 }

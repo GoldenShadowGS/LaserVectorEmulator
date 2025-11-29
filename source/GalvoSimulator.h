@@ -11,7 +11,8 @@ public:
     GalvoSimulator();
 
     // give it the next “ideal frame” from your animation
-    void LoadFrame(const LaserFrame& lF);
+    void LoadFrame(LaserFrame&& lF);
+    RenderFrame getRenderFrame();
 
     // 30 kHz update
     void Step(float dt);
@@ -36,8 +37,8 @@ private:
     float toleranceSq;
 
     // target point stream
-    LaserFrame laserFrame;
-    RenderFrame renderFrame;
+    LaserFrame lFrame;
+    RenderFrame rFrame;
     size_t frameIndex;
 
     mutable std::mutex mtx;

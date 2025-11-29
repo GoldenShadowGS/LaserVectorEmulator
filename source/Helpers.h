@@ -21,3 +21,7 @@ struct RenderPoint
 };
 
 using RenderFrame = std::vector<RenderPoint>;
+
+struct RGB { int r, g, b; };
+
+RGB HSVtoRGB(float H, float S, float V);

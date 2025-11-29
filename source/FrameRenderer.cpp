@@ -48,7 +48,7 @@ void FrameRenderer::OnResize(int width, int height)
     }
 }
 
-void FrameRenderer::RenderFrame(const LaserFrame& currentframe, const LaserFrame& previousframe)
+void FrameRenderer::DrawFrame(const RenderFrame& currentframe, const RenderFrame& previousframe)
 {
     pRenderTarget->BeginDraw();
     pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
@@ -73,10 +73,18 @@ void FrameRenderer::RenderFrame(const LaserFrame& currentframe, const LaserFrame
             const auto& a = currentframe[i];
             const auto& b = currentframe[i + 1];
 
-            if (!a.flags && !b.flags) continue;
+            if (!a.flags) 
+                continue;
+
+            int p1x;
+            int p1y;
+            int p2x;
+			int p2y;
+            SimToScreen(a.x,a.y,p1x,p1y);
+            SimToScreen(b.x, b.y, p2x, p2y);
 
             pBrush->SetColor(D2D1::ColorF(a.r / 255.0f, a.g / 255.0f, a.b / 255.0f));
-            pRenderTarget->DrawLine(D2D1::Point2F((float)a.x, (float)a.y), D2D1::Point2F((float)b.x, (float)b.y), pBrush, 1.0f);
+            pRenderTarget->DrawLine(D2D1::Point2F((float)p1x, (float)p1y), D2D1::Point2F((float)p2x, (float)p2y), pBrush, 1.0f);
         }
     }
 

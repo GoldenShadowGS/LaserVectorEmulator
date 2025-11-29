@@ -4,42 +4,17 @@
 #include <array>
 #include <algorithm>
 
-struct RGB { int r, g, b; };
-
-static RGB HSVtoRGB(float H, float S, float V)
-{
-    float C = V * S;               // chroma
-    float X = C * (1 - fabs((float)fmod(H / 60.0, 2) - 1));
-    float m = V - C;
-
-    float r, g, b;
-
-    if (H < 60) { r = C; g = X; b = 0; }
-    else if (H < 120) { r = X; g = C; b = 0; }
-    else if (H < 180) { r = 0; g = C; b = X; }
-    else if (H < 240) { r = 0; g = X; b = C; }
-    else if (H < 300) { r = X; g = 0; b = C; }
-    else { r = C; g = 0; b = X; }
-
-    return {
-        int((r + m) * 255.0f),
-        int((g + m) * 255.0f),
-        int((b + m) * 255.0f)
-    };
-}
-
 static inline float clampf(float v, float a, float b)
 {
     return (v < a) ? a : ((v > b) ? b : v);
 }
 
-LaserFrame GeneratePointSequence(float x, float y)
+LaserFrame GeneratePointSequence(float x, float y, float hue)
 {
     LaserFrame frame;
 
-    static float hue = 0.0f;
     RGB color = HSVtoRGB(hue, 1.0f, 1.0f);
-    hue += 5.0f;
+    hue += 15.0f;
     LaserPoint p {};
     p.x = (int16_t)x;
     p.y = (int16_t)y;
@@ -49,9 +24,10 @@ LaserFrame GeneratePointSequence(float x, float y)
     p.flags = 1;
     frame.push_back(p);
 
+
     color = HSVtoRGB(hue, 1.0f, 1.0f);
-    hue += 5.0f;
-    p.x = (int16_t)x+100;
+    hue += 15.0f;
+    p.x = (int16_t)x+5500;
     p.y = (int16_t)y;
     p.r = color.r;
     p.g = color.g;
@@ -60,9 +36,9 @@ LaserFrame GeneratePointSequence(float x, float y)
     frame.push_back(p);
 
     color = HSVtoRGB(hue, 1.0f, 1.0f);
-    hue += 5.0f;
+    hue += 15.0f;
     p.x = (int16_t)x;
-    p.y = (int16_t)y+100;
+    p.y = (int16_t)y+5500;
     p.r = color.r;
     p.g = color.g;
     p.b = color.b;
