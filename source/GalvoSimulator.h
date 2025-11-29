@@ -1,0 +1,44 @@
+#pragma once
+#include <vector>
+#include <mutex>
+#include <atomic>
+#include <cstdint>
+#include "Helpers.h"
+
+class GalvoSimulator
+{
+public:
+    GalvoSimulator();
+
+    // give it the next “ideal frame” from your animation
+    void LoadFrame(const LaserFrame& lF);
+
+    // 30 kHz update
+    void Step(float dt);
+
+    //// returns the actual XY position
+    //SimPoint GetBeam() const;
+
+private:
+    float ConvertAngle(const int16_t angle) const;
+    float GetXPosition() const;
+    float GetYPosition() const; 
+    // galvo physics state
+    float AngleX, AngleY;
+    float AngularVelX, AngularVelY;
+
+    // physical properties (tunable)
+    float damping;
+    float stiffness;
+    float maxSpeed;
+    float maxAngle;
+    float inertia;
+    float toleranceSq;
+
+    // target point stream
+    LaserFrame laserFrame;
+    RenderFrame renderFrame;
+    size_t frameIndex;
+
+    mutable std::mutex mtx;
+};
