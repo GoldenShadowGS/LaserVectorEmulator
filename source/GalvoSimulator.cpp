@@ -14,9 +14,8 @@ GalvoSimulator::GalvoSimulator()
     // physical properties (tunable)
     damping = 20.0f;
     stiffness = 1000.0f;
-    maxSpeed = 5.0f;
+    maxSpeed = 50.0f;
     maxAngle = 30.0f;
-    inertia = 1.0f;
     toleranceSq = 0.1f;
 
     frameIndex = 0;
@@ -89,11 +88,11 @@ float GalvoSimulator::ConvertAngle(const int16_t angle) const
 
 float GalvoSimulator::GetXPosition() const
 {
-    return sin(AngleX);
+    return sin(AngleX * 0.01745329251994f);
 }
 float GalvoSimulator::GetYPosition() const
 {
-    return sin(AngleY);
+    return sin(AngleY * 0.01745329251994f);
 }
 
 RenderFrame GalvoSimulator::getRenderFrame()

@@ -1,9 +1,14 @@
+#define NTDDI_VERSION NTDDI_WIN7
+#define _WIN32_WINNT _WIN32_WINNT_WIN7
+
 #include <windows.h>
+#include <commctrl.h>
 #include <windowsx.h>
 #include <d2d1.h>
 #include "Helpers.h"
 #include "FrameRenderer.h"
 #include "GalvoSimulator.h"
+#pragma comment(lib, "Comctl32.lib")
 
 std::atomic<bool> running = true;
 GalvoSimulator simulator;
@@ -27,6 +32,92 @@ void UpdateHue(float& hue, float amount)
     if (hue >= 360.0f)        // wrap around
         hue -= 360.0f;
 }
+
+struct SliderControl
+{
+    HWND hwndSlider;        // Handle to the trackbar
+    HWND hwndLabel;         // Optional: handle to the label
+    float* pValue;          // Pointer to the variable to update
+    float scale;            // How to scale integer slider to float value
+    const wchar_t* labelText;  // Label text
+    int minVal;             // Slider min
+    int maxVal;             // Slider max
+
+    void Create(HWND parent, HINSTANCE hInst, int x, int y, int width)
+    {
+        // Create the label
+        hwndLabel = CreateWindow(L"STATIC", labelText, WS_CHILD | WS_VISIBLE,
+            x, y, width, 20, parent, nullptr, hInst, nullptr);
+
+        // Create the slider
+        hwndSlider = CreateWindowEx(0, TRACKBAR_CLASS, L"",
+            WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
+            x, y + 20, width, 30, parent, nullptr, hInst, nullptr);
+
+        SendMessage(hwndSlider, TBM_SETRANGE, TRUE, MAKELONG(minVal, maxVal));
+        SendMessage(hwndSlider, TBM_SETPOS, TRUE, (minVal + maxVal) / 2);
+    }
+
+    void UpdateValue()
+    {
+        int pos = SendMessage(hwndSlider, TBM_GETPOS, 0, 0);
+        if (pValue)
+            *pValue = pos * scale;
+    }
+};
+
+std::vector<SliderControl> sliders;
+
+
+static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    switch (msg)
+    {
+    case WM_CREATE:
+    {
+        // Add sliders to the vector
+        sliders.push_back({ nullptr, nullptr, &simulator.maxAngle, 1.0f, L"Max Angle", 10, 45 });
+        sliders.push_back({ nullptr, nullptr, &simulator.maxSpeed, 0.5f, L"Max Speed", 1, 25 });
+        sliders.push_back({ nullptr, nullptr, &simulator.damping, 1.0f, L"Damping", 10, 30 });
+        sliders.push_back({ nullptr, nullptr, &simulator.stiffness, 100.0f, L"Stiffness", 1, 20 });
+
+        // Create the controls
+        int yPos = 10;
+        for (auto& s : sliders)
+        {
+            s.Create(hwnd, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 10, yPos, 260);
+            yPos += 60; // space for label + slider
+        }
+
+        break;
+    }
+
+    case WM_HSCROLL:
+    {
+        HWND hCtrl = (HWND)lParam;
+        for (auto& s : sliders)
+        {
+            if (s.hwndSlider == hCtrl)
+            {
+                s.UpdateValue();
+                // You can now use the updated variable via s.pValue
+                break;
+            }
+        }
+        return 0;
+    }
+
+
+    case WM_CLOSE:
+        DestroyWindow(hwnd);
+        return 0;
+
+    case WM_DESTROY:
+        return 0;
+    }
+    return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -59,6 +150,20 @@ int WINAPI wWinMain(
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     RegisterClass(&wc);
 
+    WNDCLASSEX wc2 = {};
+    wc2.cbSize = sizeof(wc2);
+    wc2.lpfnWndProc = ControlWndProc;
+    wc2.hInstance = hInstance;
+    wc2.lpszClassName = L"ControlWindowClass";
+    wc2.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    RegisterClassEx(&wc2);
+
+    INITCOMMONCONTROLSEX icc;
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_BAR_CLASSES;   // Needed for trackbars (sliders)
+    InitCommonControlsEx(&icc);
+
+
     // Create window
     HWND hwnd = CreateWindowEx(0, wc.lpszClassName, L"Laser Emulator (Direct2D)",
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1000, 1000,
@@ -66,6 +171,21 @@ int WINAPI wWinMain(
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
+
+    HWND hControlWnd = CreateWindowEx(
+        0,
+        L"ControlWindowClass",
+        L"Laser Simulation Controls",
+        WS_OVERLAPPEDWINDOW,
+        100, 100, 300, 300,
+        nullptr,
+        nullptr,
+        hInstance,
+        nullptr
+    );
+    ShowWindow(hControlWnd, SW_SHOW);
+    UpdateWindow(hControlWnd);
+
 
     //std::thread galvo(GalvoThread);
     //galvo.detach();

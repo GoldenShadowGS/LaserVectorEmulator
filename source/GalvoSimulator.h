@@ -17,8 +17,12 @@ public:
     // 30 kHz update
     void Step(float dt);
 
-    //// returns the actual XY position
-    //SimPoint GetBeam() const;
+    // physical properties (tunable)
+    float damping;
+    float stiffness;
+    float maxSpeed;
+    float maxAngle;
+    float toleranceSq;
 
 private:
     float ConvertAngle(const int16_t angle) const;
@@ -28,13 +32,7 @@ private:
     float AngleX, AngleY;
     float AngularVelX, AngularVelY;
 
-    // physical properties (tunable)
-    float damping;
-    float stiffness;
-    float maxSpeed;
-    float maxAngle;
-    float inertia;
-    float toleranceSq;
+
 
     // target point stream
     LaserFrame lFrame;
