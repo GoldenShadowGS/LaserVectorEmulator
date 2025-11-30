@@ -13,9 +13,10 @@ public:
     // give it the next “ideal frame” from your animation
     void LoadFrame(LaserFrame&& lF);
     RenderFrame getRenderFrame();
+    void Simulate(float dt);
 
     // 30 kHz update
-    void Step(float dt);
+    bool Step(float dt);
 
     // physical properties (tunable)
     float damping;
@@ -32,7 +33,7 @@ private:
     float AngleX, AngleY;
     float AngularVelX, AngularVelY;
 
-
+	ColorHSV color; // point color cycling
 
     // target point stream
     LaserFrame lFrame;

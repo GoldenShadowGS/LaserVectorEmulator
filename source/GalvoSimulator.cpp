@@ -16,7 +16,7 @@ GalvoSimulator::GalvoSimulator()
     stiffness = 1000.0f;
     maxSpeed = 50.0f;
     maxAngle = 30.0f;
-    toleranceSq = 0.1f;
+    toleranceSq = 0.01f;
 
     frameIndex = 0;
 }
@@ -29,13 +29,19 @@ void GalvoSimulator::LoadFrame(LaserFrame&& lF)
     rFrame.clear();
     rFrame.reserve(lFrame.size());
     frameIndex = 0;
+
 }
 
-void GalvoSimulator::Step(float dt)
+void GalvoSimulator::Simulate(float dt)
+{
+    while(Step(dt));
+}
+
+bool GalvoSimulator::Step(float dt)
 {
     std::lock_guard<std::mutex> lock(mtx);
     if (lFrame.empty())
-        return;
+        return false;
 
     // get target
     const LaserPoint& target = lFrame[frameIndex];
@@ -63,22 +69,22 @@ void GalvoSimulator::Step(float dt)
     AngleX += AngularVelX * dt;
     AngleY += AngularVelY * dt;
 
-    if (AngleX > maxAngle)
-        AngleX = maxAngle;
-    if (AngleX < -maxAngle)
-        AngleX = -maxAngle;
-    if (AngleY > maxAngle)
-        AngleY = maxAngle;
-    if (AngleY < -maxAngle)
-        AngleY = -maxAngle;
+    if (std::abs(AngleX) > maxAngle)
+        AngleX -= AngularVelX * dt;
+    if (std::abs(AngleY) > maxAngle)
+        AngleY -= AngularVelY * dt;
 
-    rFrame.push_back({ GetXPosition(), GetYPosition(), target.r, target.g, target.b, target.flags });
+    color.addHue(0.25f);
+
+    rFrame.push_back({ GetXPosition(), GetYPosition(), color.getR(), color.getG(), color.getB(), target.flags});
 
     // advance to next target point
     if ((dx * dx + dy * dy) < toleranceSq)
     {
-        frameIndex = (frameIndex + 1) % lFrame.size();
+        frameIndex = (frameIndex + 1);
+        color.setHSV(0.0f, 1.0f, 1.0f);
     }
+    return frameIndex < lFrame.size();
 }
 
 float GalvoSimulator::ConvertAngle(const int16_t angle) const

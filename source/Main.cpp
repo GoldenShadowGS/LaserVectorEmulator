@@ -1,10 +1,11 @@
-#define NTDDI_VERSION NTDDI_WIN7
+﻿#define NTDDI_VERSION NTDDI_WIN7
 #define _WIN32_WINNT _WIN32_WINNT_WIN7
 
 #include <windows.h>
 #include <commctrl.h>
 #include <windowsx.h>
 #include <d2d1.h>
+#include <functional>
 #include "Helpers.h"
 #include "FrameRenderer.h"
 #include "GalvoSimulator.h"
@@ -13,6 +14,8 @@
 std::atomic<bool> running = true;
 GalvoSimulator simulator;
 LaserFrame GeneratePointSequence(float x, float y, float hue);
+LaserFrame GenerateCubeFrame(float angle);
+LaserFrame GenerateRotatingCubeFrame2(float t);
 
 //void GalvoThread()
 //{
@@ -22,49 +25,101 @@ LaserFrame GeneratePointSequence(float x, float y, float hue);
 //    while (running)
 //    {
 //        simulator.Step(dt);
-//        Sleep(0); // yield (Windows can't sleep 33 �s, but it's okay)
+//        Sleep(0); // yield (Windows can't sleep 33 µs, but it's okay)
 //    }
 //}
 
-void UpdateHue(float& hue, float amount)
+static void UpdateAngle(float& hue, float amount)
 {
     hue += amount;              // increment
     if (hue >= 360.0f)        // wrap around
         hue -= 360.0f;
 }
 
+//struct SliderControl
+//{
+//    HWND hwndSlider;        // Handle to the trackbar
+//    HWND hwndLabel;         // Optional: handle to the label
+//    float* pValue;          // Pointer to the variable to update
+//    float scale;            // How to scale integer slider to float value
+//    const wchar_t* labelText;  // Label text
+//    int minVal;             // Slider min
+//    int maxVal;             // Slider max
+//
+//    void Create(HWND parent, HINSTANCE hInst, int x, int y, int width)
+//    {
+//        // Create the label
+//        hwndLabel = CreateWindow(L"STATIC", labelText, WS_CHILD | WS_VISIBLE,
+//            x, y, width, 20, parent, nullptr, hInst, nullptr);
+//
+//        // Create the slider
+//        hwndSlider = CreateWindowEx(0, TRACKBAR_CLASS, L"",
+//            WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
+//            x, y + 20, width, 30, parent, nullptr, hInst, nullptr);
+//
+//        SendMessage(hwndSlider, TBM_SETRANGE, TRUE, MAKELONG(minVal, maxVal));
+//        SendMessage(hwndSlider, TBM_SETPOS, TRUE, (minVal + maxVal) / 2);
+//    }
+//
+//    void UpdateValue()
+//    {
+//        int pos = SendMessage(hwndSlider, TBM_GETPOS, 0, 0);
+//        if (pValue)
+//            *pValue = pos * scale;
+//    }
+//};
+
+
+
 struct SliderControl
 {
     HWND hwndSlider;        // Handle to the trackbar
-    HWND hwndLabel;         // Optional: handle to the label
-    float* pValue;          // Pointer to the variable to update
-    float scale;            // How to scale integer slider to float value
-    const wchar_t* labelText;  // Label text
-    int minVal;             // Slider min
-    int maxVal;             // Slider max
+    HWND hwndLabel;         // Label for the slider
+    HWND hwndValue;         // Label showing numeric value
+    float scale;            // Scale factor to convert slider int → float
+    std::function<void(float)> onChange; // Callback when value changes
+
+    int minVal;
+    int maxVal;
+    const wchar_t* labelText;
 
     void Create(HWND parent, HINSTANCE hInst, int x, int y, int width)
     {
-        // Create the label
+        // Label
         hwndLabel = CreateWindow(L"STATIC", labelText, WS_CHILD | WS_VISIBLE,
             x, y, width, 20, parent, nullptr, hInst, nullptr);
 
-        // Create the slider
+        // Slider
         hwndSlider = CreateWindowEx(0, TRACKBAR_CLASS, L"",
             WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
-            x, y + 20, width, 30, parent, nullptr, hInst, nullptr);
+            x, y + 20, width - 50, 30, parent, nullptr, hInst, nullptr);
 
         SendMessage(hwndSlider, TBM_SETRANGE, TRUE, MAKELONG(minVal, maxVal));
-        SendMessage(hwndSlider, TBM_SETPOS, TRUE, (minVal + maxVal) / 2);
+        SendMessage(hwndSlider, TBM_SETPOS, TRUE, minVal + (maxVal - minVal) / 2);
+
+        // Value display
+        hwndValue = CreateWindow(L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_CENTER,
+            x + width - 45, y + 20, 45, 30, parent, nullptr, hInst, nullptr);
+
+        UpdateValue(); // Set initial text
     }
 
-    void UpdateValue()
+    void UpdateValue() const
     {
-        int pos = SendMessage(hwndSlider, TBM_GETPOS, 0, 0);
-        if (pValue)
-            *pValue = pos * scale;
+        int pos = (int)SendMessage(hwndSlider, TBM_GETPOS, 0, 0);
+        float val = pos * scale;
+
+        // Update numeric display
+        wchar_t buf[32];
+        swprintf(buf, 32, L"%.2f", val);
+        SetWindowText(hwndValue, buf);
+
+        // Call the callback
+        if (onChange)
+            onChange(val);
     }
 };
+
 
 std::vector<SliderControl> sliders;
 
@@ -75,23 +130,45 @@ static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
     case WM_CREATE:
     {
-        // Add sliders to the vector
-        sliders.push_back({ nullptr, nullptr, &simulator.maxAngle, 1.0f, L"Max Angle", 10, 45 });
-        sliders.push_back({ nullptr, nullptr, &simulator.maxSpeed, 0.5f, L"Max Speed", 1, 25 });
-        sliders.push_back({ nullptr, nullptr, &simulator.damping, 1.0f, L"Damping", 10, 30 });
-        sliders.push_back({ nullptr, nullptr, &simulator.stiffness, 100.0f, L"Stiffness", 1, 20 });
-
-        // Create the controls
         int yPos = 10;
+        HINSTANCE hInst = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
+
+        // Max Angle slider
+        sliders.push_back({
+            nullptr, nullptr, nullptr, 1.0f,
+            [&] (float val) { simulator.maxAngle = val; },
+            15, 45, L"Max Angle"
+            });
+
+        // Speed slider
+        sliders.push_back({
+            nullptr, nullptr, nullptr, 0.1f,
+            [&] (float val) { simulator.maxSpeed = val; },
+            50, 150, L"Speed"
+            });
+
+        // Damping slider
+        sliders.push_back({
+            nullptr, nullptr, nullptr, 1.0f,
+            [&] (float val) { simulator.damping = val; },
+            10, 30, L"Damping"
+            });
+
+        // Stiffness slider
+        sliders.push_back({
+            nullptr, nullptr, nullptr, 10.0f,
+            [&] (float val) { simulator.stiffness = val; },
+            20, 40, L"Stiffness"
+            });
+
         for (auto& s : sliders)
         {
-            s.Create(hwnd, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), 10, yPos, 260);
-            yPos += 60; // space for label + slider
+            s.Create(hwnd, hInst, 10, yPos, 260);
+            yPos += 60;
         }
 
         break;
     }
-
     case WM_HSCROLL:
     {
         HWND hCtrl = (HWND)lParam;
@@ -106,8 +183,6 @@ static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         }
         return 0;
     }
-
-
     case WM_CLOSE:
         DestroyWindow(hwnd);
         return 0;
@@ -198,8 +273,13 @@ int WINAPI wWinMain(
     int mouseX = 0;
     int mouseY = 0;
 	float hue = 0.0f;
+	float angle = 0.0f;
     RenderFrame renderFrame;
     RenderFrame prevframe;
+    float simsteps_per_second = 30000.0f;
+	float fps = 60.0f;
+    float simsteps = simsteps_per_second / fps;
+    float dt = 1.0f / simsteps;
     while (running)
     {
         // pump messages
@@ -225,15 +305,18 @@ int WINAPI wWinMain(
         if (!running) break;
 
         // generate frame (replace with UDP receiver later)
-        UpdateHue(hue, 1.0f);
-        LaserFrame lframe = GeneratePointSequence(mouseX, mouseY, hue);
+        UpdateAngle(hue, 0.01f);
+        UpdateAngle(angle, 0.01f);
+        //LaserFrame lframe = GeneratePointSequence(0.0f, 0.0f, hue);
+        //LaserFrame lframe = GeneratePointSequence((float)mouseX, (float)mouseY, hue);
+        LaserFrame lframe = GenerateRotatingCubeFrame2(angle);
+		size_t segments = lframe.size();
         simulator.LoadFrame(std::move(lframe));
-        for(int i = 0; i < 1000; i++)
-			simulator.Step(1.0f / 1000.0f);
+		simulator.Simulate(dt);
 
         // render frame
         renderer.DrawFrame(simulator.getRenderFrame(), prevframe);
-        prevframe = simulator.getRenderFrame();
+        //prevframe = simulator.getRenderFrame();
 
         // simple frame cap ~60Hz (cooperative)
         Sleep(1);

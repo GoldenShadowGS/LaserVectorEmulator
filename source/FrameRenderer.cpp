@@ -62,7 +62,7 @@ void FrameRenderer::DrawFrame(const RenderFrame& currentframe, const RenderFrame
 
             if (!a.flags && !b.flags) continue;
 
-            pBrush->SetColor(D2D1::ColorF(a.r / 255.0f, a.g / 255.0f, a.b / 255.0f));
+            pBrush->SetColor(D2D1::ColorF(a.r / 512.0f, a.g / 512.0f, a.b / 512.0f));
             pRenderTarget->DrawLine(D2D1::Point2F((float)a.x, (float)a.y), D2D1::Point2F((float)b.x, (float)b.y), pBrush, 1.0f);
         }
     }
