@@ -14,8 +14,9 @@
 std::atomic<bool> running = true;
 GalvoSimulator simulator;
 LaserFrame GeneratePointSequence(float x, float y, float hue);
-LaserFrame GenerateCubeFrame(float angle);
-LaserFrame GenerateRotatingCubeFrame2(float t);
+LaserFrame GenerateCubeFrame(float angle, float size = 100.0f);
+LaserFrame GenerateRotatingCubeFrameInterpolated(float t);
+LaserFrame GenerateSquare();
 
 //void GalvoThread()
 //{
@@ -136,8 +137,8 @@ static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         // Max Angle slider
         sliders.push_back({
             nullptr, nullptr, nullptr, 1.0f,
-            [&] (float val) { simulator.maxAngle = val; },
-            15, 45, L"Max Angle"
+            [&] (float val) { simulator.SetMaxAngle(val); },
+            25, 55, L"Max Angle"
             });
 
         // Speed slider
@@ -307,10 +308,11 @@ int WINAPI wWinMain(
         // generate frame (replace with UDP receiver later)
         UpdateAngle(hue, 0.01f);
         UpdateAngle(angle, 0.01f);
-        //LaserFrame lframe = GeneratePointSequence(0.0f, 0.0f, hue);
-        //LaserFrame lframe = GeneratePointSequence((float)mouseX, (float)mouseY, hue);
-        LaserFrame lframe = GenerateRotatingCubeFrame2(angle);
-		size_t segments = lframe.size();
+
+        //LaserFrame lframe = GenerateRotatingCubeFrameInterpolated(angle);
+        LaserFrame lframe = GenerateCubeFrame(angle);
+
+        //LaserFrame lframe = GenerateSquare();
         simulator.LoadFrame(std::move(lframe));
 		simulator.Simulate(dt);
 

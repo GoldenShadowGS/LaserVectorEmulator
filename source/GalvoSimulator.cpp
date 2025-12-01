@@ -3,6 +3,8 @@
 #include <cmath>
 #include <iostream>
 
+static float constexpr DEG_TO_RAD = 0.01745329251994f;
+
 GalvoSimulator::GalvoSimulator()
 {
     // galvo physics state
@@ -16,9 +18,10 @@ GalvoSimulator::GalvoSimulator()
     stiffness = 1000.0f;
     maxSpeed = 50.0f;
     maxAngle = 30.0f;
+    scaleFactor = 1.0f;
     toleranceSq = 0.01f;
-
     frameIndex = 0;
+    SetMaxAngle(20);
 }
 
 void GalvoSimulator::LoadFrame(LaserFrame&& lF)
@@ -32,21 +35,29 @@ void GalvoSimulator::LoadFrame(LaserFrame&& lF)
 
 }
 
+void GalvoSimulator::SetMaxAngle(float newMaxAngle)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+	maxAngle = newMaxAngle;
+    scaleFactor = 1.0f / tan(maxAngle * 0.01745329251994f);
+}
+
 void GalvoSimulator::Simulate(float dt)
 {
+    std::lock_guard<std::mutex> lock(mtx);
     while(Step(dt));
 }
 
 bool GalvoSimulator::Step(float dt)
 {
-    std::lock_guard<std::mutex> lock(mtx);
     if (lFrame.empty())
         return false;
 
     // get target
     const LaserPoint& target = lFrame[frameIndex];
-    float txa = ConvertAngle(target.x);
-    float tya = ConvertAngle(target.y);
+    float txa = std::clamp(ConvertAngle(target.x), -maxAngle, maxAngle);
+    float tya = std::clamp(ConvertAngle(target.y), -maxAngle, maxAngle);
+
     // spring-damper model
     float dx = txa - AngleX;
     float dy = tya - AngleY;
@@ -69,20 +80,17 @@ bool GalvoSimulator::Step(float dt)
     AngleX += AngularVelX * dt;
     AngleY += AngularVelY * dt;
 
-    if (std::abs(AngleX) > maxAngle)
-        AngleX -= AngularVelX * dt;
-    if (std::abs(AngleY) > maxAngle)
-        AngleY -= AngularVelY * dt;
 
     color.addHue(0.25f);
-
-    rFrame.push_back({ GetXPosition(), GetYPosition(), color.getR(), color.getG(), color.getB(), target.flags});
+    CalcScreenPositions();
+    rFrame.push_back({ screenX, screenY, color.getR(), color.getG(), color.getB(), target.flags});
 
     // advance to next target point
     if ((dx * dx + dy * dy) < toleranceSq)
     {
         frameIndex = (frameIndex + 1);
-        color.setHSV(0.0f, 1.0f, 1.0f);
+        color.setHSV(frameIndex * 20.0f, 1.0f, 1.0f);
+
     }
     return frameIndex < lFrame.size();
 }
@@ -92,17 +100,20 @@ float GalvoSimulator::ConvertAngle(const int16_t angle) const
     return (float(angle) / 32768) * maxAngle;
 }
 
-float GalvoSimulator::GetXPosition() const
-{
-    return sin(AngleX * 0.01745329251994f);
-}
-float GalvoSimulator::GetYPosition() const
-{
-    return sin(AngleY * 0.01745329251994f);
-}
-
 RenderFrame GalvoSimulator::getRenderFrame()
 {
     std::lock_guard<std::mutex> lock(mtx);
     return rFrame;
+}
+
+void GalvoSimulator::CalcScreenPositions()
+{
+    // combined angular distance from center
+    float r = std::sqrt(AngleX * AngleX + AngleY * AngleY);  // in degrees
+    float theta = std::atan2(AngleY, AngleX);                // direction of point
+
+    // map to tangent plane (radial distortion)
+    float screenR = std::tan(r * DEG_TO_RAD);  // DEG_TO_RAD = 0.01745329251994f
+    screenX = screenR * std::cos(theta) * scaleFactor;
+    screenY = screenR * std::sin(theta) * scaleFactor;
 }

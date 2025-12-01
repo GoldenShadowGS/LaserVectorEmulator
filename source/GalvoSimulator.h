@@ -14,6 +14,7 @@ public:
     void LoadFrame(LaserFrame&& lF);
     RenderFrame getRenderFrame();
     void Simulate(float dt);
+    void SetMaxAngle(float newMaxAngle);
 
     // 30 kHz update
     bool Step(float dt);
@@ -22,16 +23,18 @@ public:
     float damping;
     float stiffness;
     float maxSpeed;
-    float maxAngle;
     float toleranceSq;
+    float maxAngle;
 
 private:
     float ConvertAngle(const int16_t angle) const;
-    float GetXPosition() const;
-    float GetYPosition() const; 
+    void CalcScreenPositions();
     // galvo physics state
+    float scaleFactor;
     float AngleX, AngleY;
     float AngularVelX, AngularVelY;
+    float screenX;
+    float screenY;
 
 	ColorHSV color; // point color cycling
 

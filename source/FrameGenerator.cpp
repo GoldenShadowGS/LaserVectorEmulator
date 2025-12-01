@@ -48,74 +48,195 @@ LaserFrame GeneratePointSequence(float x, float y, float hue)
     return frame;
 }
 
-LaserFrame GenerateCubeFrame(float angle)
+LaserFrame GenerateSquare()
+{
+    LaserFrame frame;
+    int16_t max_value = int16_t(32767 * 0.8f);
+    LaserPoint p {};
+    p.x = -max_value;
+    p.y = -max_value;
+    p.r = 255;
+    p.g = 255;
+    p.b = 255;
+    p.flags = 1;
+    frame.push_back(p);
+
+    p.x = max_value;
+    p.y = -max_value;
+    p.r = 255;
+    p.g = 255;
+    p.b = 255;
+    p.flags = 1;
+    frame.push_back(p);
+
+    p.x = max_value;
+    p.y = max_value;
+    p.r = 255;
+    p.g = 255;
+    p.b = 255;
+    p.flags = 1;
+    frame.push_back(p);
+
+    p.x = -max_value;
+    p.y = max_value;
+    p.r = 255;
+    p.g = 255;
+    p.b = 255;
+    p.flags = 1;
+    frame.push_back(p);
+
+    return frame;
+}
+
+//LaserFrame GenerateCubeFrame(float angle)
+//{
+//    LaserFrame frame;
+//
+//    // Define cube vertices
+//    const float size = 100.0f;
+//    struct Vec3 { float x, y, z; };
+//    Vec3 vertices[] = {
+//        {-size, -size, -size}, {size, -size, -size},
+//        {size, size, -size}, {-size, size, -size},
+//        {-size, -size, size}, {size, -size, size},
+//        {size, size, size}, {-size, size, size}
+//    };
+//
+//    // Define edges (pairs of vertex indices)
+//    int edges[12][2] = {
+//        {0,1},{1,2},{2,3},{3,0},
+//        {4,5},{5,6},{6,7},{7,4},
+//        {0,4},{1,5},{2,6},{3,7}
+//    };
+//
+//    // Simple rotation around Y
+//    float cosA = std::cos(angle);
+//    float sinA = std::sin(angle);
+//
+//    struct Vec2 { float x, y; };
+//    Vec2 proj[8] {};
+//
+//    for (int i = 0; i < 8; i++)
+//    {
+//        float x = vertices[i].x * cosA - vertices[i].z * sinA;
+//        float z = vertices[i].x * sinA + vertices[i].z * cosA + 400; // simple perspective
+//        float y = vertices[i].y;
+//        proj[i].x = x * 200 / z + 400;  // scale + center
+//        proj[i].y = y * 200 / z + 300;
+//    }
+//    static float hue = 0.0f;
+//    // Convert edges to LaserPoints
+//    for (int ei = 0; ei < 12; ei++)
+//    {
+//        const auto& a = proj[edges[ei][0]];
+//        const auto& b = proj[edges[ei][1]];
+//        RGB color = HSVtoRGB(hue, 1.0f, 1.0f);
+//        hue += 100.0f;
+//        LaserPoint p {};
+//        p.x = (int16_t)a.x;
+//        p.y = (int16_t)a.y;
+//        p.r = color.r;
+//        p.g = color.g;
+//        p.b = color.b;
+//        p.flags = 1;
+//        
+//        frame.push_back(p);
+//
+//        p.x = (int16_t)b.x;
+//        p.y = (int16_t)b.y;
+//        frame.push_back(p);
+//    }
+//
+//    return frame;
+//}
+
+LaserFrame GenerateCubeFrame(float angle, float size)
 {
     LaserFrame frame;
 
-    // Define cube vertices
-    const float size = 10000000.0f;
+    // Cube vertices
     struct Vec3 { float x, y, z; };
     Vec3 vertices[] = {
-        {-size, -size, -size}, {size, -size, -size},
-        {size, size, -size}, {-size, size, -size},
-        {-size, -size, size}, {size, -size, size},
-        {size, size, size}, {-size, size, size}
+        {-size, -size, -size}, { size, -size, -size},
+        { size,  size, -size}, {-size,  size, -size},
+        {-size, -size,  size}, { size, -size,  size},
+        { size,  size,  size}, {-size,  size,  size}
     };
 
-    // Define edges (pairs of vertex indices)
+    // Cube edges (vertex indices)
     int edges[12][2] = {
         {0,1},{1,2},{2,3},{3,0},
         {4,5},{5,6},{6,7},{7,4},
         {0,4},{1,5},{2,6},{3,7}
     };
 
-    // Simple rotation around Y
+    // Rotation around Y
     float cosA = std::cos(angle);
     float sinA = std::sin(angle);
 
     struct Vec2 { float x, y; };
-    Vec2 proj[8] {};
+    Vec2 proj[8];
 
+    // Perspective camera distance
+    float camDist = size * 4.0f; // adjust 4.0f to control FOV
+
+    // Project vertices
     for (int i = 0; i < 8; i++)
     {
         float x = vertices[i].x * cosA - vertices[i].z * sinA;
-        float z = vertices[i].x * sinA + vertices[i].z * cosA + 400; // simple perspective
+        float z = vertices[i].x * sinA + vertices[i].z * cosA + camDist;
         float y = vertices[i].y;
-        proj[i].x = x * 200 / z + 400;  // scale + center
-        proj[i].y = y * 200 / z + 300;
+
+        proj[i].x = x / z;
+        proj[i].y = y / z;
     }
-    static float hue = 0.0f;
+
+    // Find bounding box
+    float minX = +FLT_MAX, maxX = -FLT_MAX;
+    float minY = +FLT_MAX, maxY = -FLT_MAX;
+    for (int i = 0; i < 8; i++)
+    {
+        minX = std::min(minX, proj[i].x);
+        maxX = std::max(maxX, proj[i].x);
+        minY = std::min(minY, proj[i].y);
+        maxY = std::max(maxY, proj[i].y);
+    }
+
+    // Normalize to -1..1
+    for (int i = 0; i < 8; i++)
+    {
+        proj[i].x = 2.0f * (proj[i].x - minX) / (maxX - minX) - 1.0f;
+        proj[i].y = 2.0f * (proj[i].y - minY) / (maxY - minY) - 1.0f;
+    }
+
     // Convert edges to LaserPoints
     for (int ei = 0; ei < 12; ei++)
     {
         const auto& a = proj[edges[ei][0]];
         const auto& b = proj[edges[ei][1]];
-        RGB color = HSVtoRGB(hue, 1.0f, 1.0f);
-        hue += 100.0f;
+
+		const float maxsize = (32767 * 0.8f);
         LaserPoint p {};
-        p.x = (int16_t)a.x;
-        p.y = (int16_t)a.y;
-        p.r = color.r;
-        p.g = color.g;
-        p.b = color.b;
-        p.flags = 1;
-        
+        p.x = (int16_t)(a.x * maxsize);
+        p.y = (int16_t)(a.y * maxsize);
+        p.r = 0; p.g = 255; p.b = 192; p.flags = 1;
         frame.push_back(p);
 
-        p.x = (int16_t)b.x;
-        p.y = (int16_t)b.y;
+        p.x = (int16_t)(b.x * maxsize);
+        p.y = (int16_t)(b.y * maxsize);
         frame.push_back(p);
     }
 
     return frame;
 }
 
+
  //--------------------------- 3D cube generator ------------------------------
  //Returns LaserPoint vector using int16 XY coordinates. Adds small blanked jumps.
-LaserFrame GenerateRotatingCubeFrame2(float t)
+LaserFrame GenerateRotatingCubeFrameInterpolated(float t)
 {
     // base cube vertices (size)
-    const float half = 1.2f;
+    const float half = 1.0f;
     std::array<std::array<float, 3>, 8> verts = { {
         {-half,-half,-half},{ half,-half,-half},{ half, half,-half},{-half, half,-half},
         {-half,-half, half},{ half,-half, half},{ half, half, half},{-half, half, half}
