@@ -21,13 +21,10 @@
     <ClCompile Include="source\FrameRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\FrameGenerator.cpp">
+    <ClCompile Include="source\LaserFrameGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="source\GalvoSimulator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="source\Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,7 +35,10 @@
     <ClInclude Include="source\GalvoSimulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="source\Helpers.h">
+    <ClInclude Include="source\LaserFrameGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\LaserColor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

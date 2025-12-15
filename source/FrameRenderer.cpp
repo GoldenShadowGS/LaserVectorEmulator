@@ -4,7 +4,14 @@
 #undef max
 #undef min
 
-FrameRenderer::FrameRenderer(HWND hwnd)
+FrameRenderer::~FrameRenderer()
+{
+    if (pBrush) pBrush->Release();
+    if (pRenderTarget) pRenderTarget->Release();
+    if (pFactory) pFactory->Release();
+}
+
+void FrameRenderer::Initialize(HWND hwnd)
 {
     D2D1_FACTORY_OPTIONS options {};
 #if defined(_DEBUG)
@@ -30,13 +37,6 @@ FrameRenderer::FrameRenderer(HWND hwnd)
     if (FAILED(hr)) throw std::runtime_error("Failed to create brush");
 }
 
-FrameRenderer::~FrameRenderer()
-{
-    if (pBrush) pBrush->Release();
-    if (pRenderTarget) pRenderTarget->Release();
-    if (pFactory) pFactory->Release();
-}
-
 void FrameRenderer::OnResize(int width, int height)
 {
     m_width = width;
@@ -48,33 +48,20 @@ void FrameRenderer::OnResize(int width, int height)
     }
 }
 
-void FrameRenderer::DrawFrame(const RenderFrame& currentframe, const RenderFrame& previousframe)
+void FrameRenderer::DrawFrame()
 {
     pRenderTarget->BeginDraw();
     pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 
-    if (previousframe.size() > 1)
+    if (renderFrame.size() > 1)
     {
-        for (size_t i = 0; i < previousframe.size() - 1; i++)
+        for (size_t i = 0; i < renderFrame.size() - 1; i++)
         {
-            const auto& a = previousframe[i];
-            const auto& b = previousframe[i + 1];
+            const auto& a = renderFrame[i];
+            const auto& b = renderFrame[i + 1];
 
-            if (!a.flags && !b.flags) continue;
-
-            pBrush->SetColor(D2D1::ColorF(a.r / 512.0f, a.g / 512.0f, a.b / 512.0f));
-            pRenderTarget->DrawLine(D2D1::Point2F((float)a.x, (float)a.y), D2D1::Point2F((float)b.x, (float)b.y), pBrush, 1.0f);
-        }
-    }
-    if (currentframe.size() > 1)
-    {
-        for (size_t i = 0; i < currentframe.size() - 1; i++)
-        {
-            const auto& a = currentframe[i];
-            const auto& b = currentframe[i + 1];
-
-            if (!a.flags) 
-                continue;
+            //if (!a.flags) 
+            //    continue;
 
             int p1x;
             int p1y;
