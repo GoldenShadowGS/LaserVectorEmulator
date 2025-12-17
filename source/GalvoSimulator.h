@@ -1,12 +1,13 @@
 #pragma once
 #include "LaserFrameGenerator.h"
-#include "FrameRenderer.h"
+#include "LaserRenderer.h"
+
 
 class GalvoSimulator
 {
     // galvo physics state
     const LaserFrameGenerator::LaserFrame& lFrame;
-    FrameRenderer::RenderFrame& rFrame;
+    SimFrame& sFrame;
     float scaleFactor;
     float AngleX, AngleY;
     float AngularVelX, AngularVelY;
@@ -20,9 +21,9 @@ public:
     float maxSpeed;
     float toleranceSq;
     float maxAngle;
-    GalvoSimulator(const LaserFrameGenerator::LaserFrame& lf, FrameRenderer::RenderFrame& rf) : 
+    GalvoSimulator(const LaserFrameGenerator::LaserFrame& lf, SimFrame& sf) :
         lFrame(lf), 
-        rFrame(rf),
+        sFrame(sf),
         scaleFactor(1.0f),
         AngleX(0.0f),
         AngleY(0.0f),
@@ -39,7 +40,7 @@ public:
     {}
 
     // give it the next “ideal frame” from your animation
-	const FrameRenderer::RenderFrame& getRenderFrame() { return rFrame; }
+	//const SimFrame& getSimFrame() { return sFrame; }
     void Simulate(float dt);
     void SetMaxAngle(float newMaxAngle) 
     {

@@ -1,8 +1,6 @@
 #pragma once
 #include <vector>
 #include <cstdint>
-#include <algorithm>
-#include <cmath>
 #include "LaserColor.h"
 
 class LaserFrameGenerator
@@ -36,16 +34,18 @@ private:
     LaserFrame m_Frame;
     float m_MaxValue;
     float m_pointSpacing;
-	float lastX;
-	float lastY;
+	float m_lastX;
+	float m_lastY;
+    float m_currentdistance;
+    float m_totaldistance;
 public:
-    LaserFrameGenerator() : m_MaxValue(32767 * 0.8f), m_pointSpacing(m_MaxValue * 0.01f), lastX(0.0f), lastY(0.0f) {}
+    LaserFrameGenerator() : m_MaxValue(32767 * 0.8f), m_pointSpacing(m_MaxValue * 0.01f), m_lastX(0.0f), m_lastY(0.0f), m_currentdistance(0.0f), m_totaldistance(0.0f) {}
     ~LaserFrameGenerator() {}
     void NewFrame() 
     { 
         m_Frame.clear(); 
-		lastX = 0.0f;
-		lastY = 0.0f;
+		m_lastX = 0.0f;
+		m_lastY = 0.0f;
     }
 	void AddSquare(float xc, float yc, float size, LaserColor color);
 	//void GenerateGrid(int rows, int cols, float spacing, LaserColor color);

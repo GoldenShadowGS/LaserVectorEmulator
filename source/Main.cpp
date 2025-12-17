@@ -6,15 +6,17 @@
 #include <windowsx.h>
 #include <d2d1.h>
 #include <functional>
-#include "FrameRenderer.h"
+#include "D2DRenderTarget.h"
 #include "GalvoSimulator.h"
 #include "LaserFrameGenerator.h"
 #pragma comment(lib, "Comctl32.lib")
 
 
 LaserFrameGenerator g_laserFrameGen;
-FrameRenderer g_frameRenderer;
-GalvoSimulator g_GalvoSim(g_laserFrameGen.GetLaserFrame(), g_frameRenderer.getRenderFrame());
+D2DRenderTarget g_renderTarget;
+LaserRenderer laserRenderer;
+SimFrame g_simFrame;
+GalvoSimulator g_GalvoSim(g_laserFrameGen.GetLaserFrame(), g_simFrame);
 
 struct SliderControl
 {
@@ -187,7 +189,7 @@ int WINAPI wWinMain(
 
     // Create window
     HWND hwnd = CreateWindowEx(0, wc.lpszClassName, L"Laser Emulator (Direct2D)",
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1000, 1000,
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 600, 600,
         nullptr, nullptr, hInstance, nullptr);
 
     ShowWindow(hwnd, nCmdShow);
@@ -210,7 +212,9 @@ int WINAPI wWinMain(
 #endif
 
     // message + render loop
-    g_frameRenderer.Initialize(hwnd);
+    g_renderTarget.Initialize(hwnd);
+	laserRenderer.Initialize(g_renderTarget.GetD2DRenderTarget());
+    laserRenderer.Resize(g_renderTarget.getScreenWidth(), g_renderTarget.getScreenHeight());
     MSG msg;
     int mouseX = 0;
     int mouseY = 0;
@@ -241,7 +245,8 @@ int WINAPI wWinMain(
                 int width = LOWORD(msg.lParam);
                 int height = HIWORD(msg.lParam);
 
-                g_frameRenderer.OnResize(width, height);
+                g_renderTarget.OnResize(width, height);
+                laserRenderer.Resize(width, height);
             }
         }
         if (!running) break;
@@ -251,10 +256,10 @@ int WINAPI wWinMain(
         //LaserFrame lframe = GenerateRotatingCubeFrameInterpolated(angle);
 
         g_laserFrameGen.NewFrame();
-		LaserColor color(60.0f, 1.0f, 1.0f, 120.0f, 0.5f, 0.5f);
+		LaserColor color(0.0f, 180.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         g_laserFrameGen.AddSquare(0.125f, 0.125f, 0.8f, color);
-		float mouseXpos = (float(mouseX) / g_frameRenderer.getScreenWidth());
-		float mouseposY = (float(mouseY) / g_frameRenderer.getScreenHeight());
+		float mouseXpos = (float(mouseX) / g_renderTarget.getScreenWidth());
+		float mouseposY = (float(mouseY) / g_renderTarget.getScreenHeight());
         g_laserFrameGen.AddSquare((mouseXpos-0.5f) * 2.4f, (mouseposY-0.5f) * 2.4f, 0.5f, color);
         //Draw here...
 		//Draw a square that changes size with mouse Y
@@ -265,7 +270,17 @@ int WINAPI wWinMain(
 
         // Instead, we simulate and render in our window
         g_GalvoSim.Simulate(dt);
-        g_frameRenderer.DrawFrame();
+
+        laserRenderer.Clear();
+        laserRenderer.Accumulate(g_simFrame);
+
+        auto* rt = g_renderTarget.GetD2DRenderTarget();
+        rt->BeginDraw();
+        rt->Clear(D2D1::ColorF(D2D1::ColorF::Black));
+
+        laserRenderer.Present();
+
+        rt->EndDraw();
 
         // simple frame cap ~60Hz (cooperative)
         Sleep(1);

@@ -2,8 +2,8 @@
 
 void GalvoSimulator::Simulate(float dt)
 {
-    rFrame.clear();
-    rFrame.reserve(lFrame.size());
+    sFrame.clear();
+    sFrame.reserve(lFrame.size());
     frameIndex = 0;
     while(Step(dt));
 }
@@ -41,7 +41,7 @@ bool GalvoSimulator::Step(float dt)
     AngleY += AngularVelY * dt;
 
     CalcScreenPositions();
-    rFrame.push_back({ screenX, screenY, target.r, target.g, target.b, target.flags});
+    sFrame.push_back({ screenX, screenY, target.r, target.g, target.b, target.flags});
 
     // advance to next target point
     if ((dx * dx + dy * dy) < toleranceSq)

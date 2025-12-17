@@ -127,15 +127,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\LaserFrameGenerator.cpp" />
-    <ClCompile Include="source\FrameRenderer.cpp" />
+    <ClCompile Include="source\D2DRenderTarget.cpp" />
     <ClCompile Include="source\GalvoSimulator.cpp" />
+    <ClCompile Include="source\LaserRenderer.cpp" />
     <ClCompile Include="source\Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\LaserColor.h" />
     <ClInclude Include="source\LaserFrameGenerator.h" />
-    <ClInclude Include="source\FrameRenderer.h" />
+    <ClInclude Include="source\D2DRenderTarget.h" />
     <ClInclude Include="source\GalvoSimulator.h" />
+    <ClInclude Include="source\LaserRenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -34,11 +34,6 @@ public:
 
         return HSVtoRGB(hue, sat, val);
     }
- //   void RollHue(float deltaH) noexcept
- //   {
- //       m_h0 = std::fmod(m_h0 + deltaH + 360.0f, 360.0f);
- //       m_h1 = std::fmod(m_h1 + deltaH + 360.0f, 360.0f);
-	//}
 
 private:
     float m_h0, m_h1;   // Hue 0–360

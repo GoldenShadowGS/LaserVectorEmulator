@@ -1,24 +1,21 @@
 //#include <cmath>
 //#include <vector>
 //#include <array>
+#include <algorithm>
+#include <cmath>
 #include "LaserFrameGenerator.h"
-
-//static inline float clampf(float v, float a, float b)
-//{
-//    return (v < a) ? a : ((v > b) ? b : v);
-//}
 
 void LaserFrameGenerator::BlankTo(float x, float y)
 {
-    float dx = x - lastX;
-    float dy = y - lastY;
+    float dx = x - m_lastX;
+    float dy = y - m_lastY;
     float length = std::sqrt(dx * dx + dy * dy);
     size_t steps = static_cast<size_t>(length / m_pointSpacing * 0.5f);
     for (size_t i = 0; i < steps; i++)
     {
         float t = float(i) / float(steps);
-        float ix = lastX + dx * t;
-        float iy = lastY + dy * t;
+        float ix = m_lastX + dx * t;
+        float iy = m_lastY + dy * t;
         LaserFrameGenerator::LaserPoint p {};
         p.x = (int16_t)std::clamp(ix, -m_MaxValue, m_MaxValue);
         p.y = (int16_t)std::clamp(iy, -m_MaxValue, m_MaxValue);
@@ -28,8 +25,8 @@ void LaserFrameGenerator::BlankTo(float x, float y)
         p.flags = 0;
         m_Frame.push_back(p);
     }
-    lastX = std::clamp(x, -m_MaxValue, m_MaxValue);
-    lastY = std::clamp(y, -m_MaxValue, m_MaxValue);
+    m_lastX = std::clamp(x, -m_MaxValue, m_MaxValue);
+    m_lastY = std::clamp(y, -m_MaxValue, m_MaxValue);
 
 
     //LaserFrameGenerator::LaserPoint p {};
@@ -44,27 +41,33 @@ void LaserFrameGenerator::BlankTo(float x, float y)
 
 void LaserFrameGenerator::SolidLineTo(float x, float y, LaserColor c)
 {
-	float dx = x - lastX;
-    float dy = y - lastY;
+	float dx = x - m_lastX;
+    float dy = y - m_lastY;
 	float length = std::sqrt(dx * dx + dy * dy);
-	size_t steps = static_cast<size_t>(length / m_pointSpacing);
+    size_t steps = std::max<size_t>(1, static_cast<size_t>(length / m_pointSpacing));
+	float currentdistance = 0.0f;
     for (size_t i = 0; i <= steps; i++)
     {
         float t = float(i) / float(steps);
-        float ix = lastX + dx * t;
-        float iy = lastY + dy * t;
+        float dxt = dx * t;
+		float dyt = dy * t;
+		currentdistance  = m_currentdistance + length * t;
+        float color_t = currentdistance / m_totaldistance;
+        float ix = m_lastX + dxt;
+        float iy = m_lastY + dyt;
         LaserFrameGenerator::LaserPoint p {};
         p.x = (int16_t)std::clamp(ix, -m_MaxValue, m_MaxValue);
         p.y = (int16_t)std::clamp(iy, -m_MaxValue, m_MaxValue);
-        auto color = c.getRGB(t);
+        auto color = c.getRGB(color_t);
         p.r = color.r;
         p.g = color.g;
         p.b = color.b;
         p.flags = 1;
         m_Frame.push_back(p);
 	}
-    lastX = std::clamp(x, -m_MaxValue, m_MaxValue);
-    lastY = std::clamp(y, -m_MaxValue, m_MaxValue);
+    m_currentdistance = currentdistance;
+    m_lastX = std::clamp(x, -m_MaxValue, m_MaxValue);
+    m_lastY = std::clamp(y, -m_MaxValue, m_MaxValue);
 }
 
 
@@ -76,6 +79,8 @@ void LaserFrameGenerator::AddSquare(float xc, float yc, float size, LaserColor c
 	float y0 = (yc - size / 2.0f) * m_MaxValue;
 	float x1 = (xc + size / 2.0f) * m_MaxValue;
 	float y1 = (yc + size / 2.0f) * m_MaxValue;
+	m_totaldistance = perimeter;
+	m_currentdistance = 0.0f;
 	BlankTo(x0, y0);
     SolidLineTo(x1, y0, color);
     SolidLineTo(x1, y1, color);
