@@ -18,33 +18,27 @@
     <ClCompile Include="source\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\D2DRenderTarget.cpp">
+    <ClCompile Include="source\FrameRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\LaserFrameGenerator.cpp">
+    <ClCompile Include="source\FrameGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="source\GalvoSimulator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="source\LaserRenderer.cpp">
+    <ClCompile Include="source\Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="source\D2DRenderTarget.h">
+    <ClInclude Include="source\FrameRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="source\GalvoSimulator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="source\LaserFrameGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="source\LaserColor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="source\LaserRenderer.h">
+    <ClInclude Include="source\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

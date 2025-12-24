@@ -6,17 +6,71 @@
 #include <windowsx.h>
 #include <d2d1.h>
 #include <functional>
-#include "D2DRenderTarget.h"
+#include "Helpers.h"
+#include "FrameRenderer.h"
 #include "GalvoSimulator.h"
-#include "LaserFrameGenerator.h"
 #pragma comment(lib, "Comctl32.lib")
 
+std::atomic<bool> running = true;
+GalvoSimulator simulator;
+LaserFrame GeneratePointSequence(float x, float y, float hue);
+LaserFrame GenerateCubeFrame(float angle, float size = 100.0f);
+LaserFrame GenerateRotatingCubeFrameInterpolated(float t);
+LaserFrame GenerateSquare();
 
-LaserFrameGenerator g_laserFrameGen;
-D2DRenderTarget g_renderTarget;
-LaserRenderer laserRenderer;
-SimFrame g_simFrame;
-GalvoSimulator g_GalvoSim(g_laserFrameGen.GetLaserFrame(), g_simFrame);
+//void GalvoThread()
+//{
+//    // 30,000 Hz -> 33.333 microseconds per sample
+//    const float dt = 1.0f / 300.0f;
+//
+//    while (running)
+//    {
+//        simulator.Step(dt);
+//        Sleep(0); // yield (Windows can't sleep 33 µs, but it's okay)
+//    }
+//}
+
+static void UpdateAngle(float& hue, float amount)
+{
+    hue += amount;              // increment
+    if (hue >= 360.0f)        // wrap around
+        hue -= 360.0f;
+}
+
+//struct SliderControl
+//{
+//    HWND hwndSlider;        // Handle to the trackbar
+//    HWND hwndLabel;         // Optional: handle to the label
+//    float* pValue;          // Pointer to the variable to update
+//    float scale;            // How to scale integer slider to float value
+//    const wchar_t* labelText;  // Label text
+//    int minVal;             // Slider min
+//    int maxVal;             // Slider max
+//
+//    void Create(HWND parent, HINSTANCE hInst, int x, int y, int width)
+//    {
+//        // Create the label
+//        hwndLabel = CreateWindow(L"STATIC", labelText, WS_CHILD | WS_VISIBLE,
+//            x, y, width, 20, parent, nullptr, hInst, nullptr);
+//
+//        // Create the slider
+//        hwndSlider = CreateWindowEx(0, TRACKBAR_CLASS, L"",
+//            WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS,
+//            x, y + 20, width, 30, parent, nullptr, hInst, nullptr);
+//
+//        SendMessage(hwndSlider, TBM_SETRANGE, TRUE, MAKELONG(minVal, maxVal));
+//        SendMessage(hwndSlider, TBM_SETPOS, TRUE, (minVal + maxVal) / 2);
+//    }
+//
+//    void UpdateValue()
+//    {
+//        int pos = SendMessage(hwndSlider, TBM_GETPOS, 0, 0);
+//        if (pValue)
+//            *pValue = pos * scale;
+//    }
+//};
+
+
 
 struct SliderControl
 {
@@ -70,7 +124,7 @@ struct SliderControl
 
 std::vector<SliderControl> sliders;
 
-#ifdef _DEBUG
+
 static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
@@ -83,29 +137,29 @@ static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         // Max Angle slider
         sliders.push_back({
             nullptr, nullptr, nullptr, 1.0f,
-            [&] (float val) { g_GalvoSim.SetMaxAngle(val); },
-            25, 35, L"Max Angle"
+            [&] (float val) { simulator.SetMaxAngle(val); },
+            25, 55, L"Max Angle"
             });
 
         // Speed slider
         sliders.push_back({
-            nullptr, nullptr, nullptr, 1.0f,
-            [&] (float val) { g_GalvoSim.maxSpeed = val; },
-            25, 75, L"Speed"
+            nullptr, nullptr, nullptr, 0.1f,
+            [&] (float val) { simulator.maxSpeed = val; },
+            50, 150, L"Speed"
             });
 
         // Damping slider
         sliders.push_back({
             nullptr, nullptr, nullptr, 1.0f,
-            [&] (float val) { g_GalvoSim.damping = val; },
+            [&] (float val) { simulator.damping = val; },
             10, 30, L"Damping"
             });
 
         // Stiffness slider
         sliders.push_back({
-            nullptr, nullptr, nullptr, 100.0f,
-            [&] (float val) { g_GalvoSim.stiffness = val; },
-            5, 15, L"Stiffness"
+            nullptr, nullptr, nullptr, 10.0f,
+            [&] (float val) { simulator.stiffness = val; },
+            20, 40, L"Stiffness"
             });
 
         for (auto& s : sliders)
@@ -139,7 +193,8 @@ static LRESULT CALLBACK ControlWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     }
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
-#endif
+
+
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -171,7 +226,6 @@ int WINAPI wWinMain(
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     RegisterClass(&wc);
 
-#ifdef _DEBUG
     WNDCLASSEX wc2 = {};
     wc2.cbSize = sizeof(wc2);
     wc2.lpfnWndProc = ControlWndProc;
@@ -184,18 +238,16 @@ int WINAPI wWinMain(
     icc.dwSize = sizeof(icc);
     icc.dwICC = ICC_BAR_CLASSES;   // Needed for trackbars (sliders)
     InitCommonControlsEx(&icc);
-#endif
 
 
     // Create window
     HWND hwnd = CreateWindowEx(0, wc.lpszClassName, L"Laser Emulator (Direct2D)",
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 600, 600,
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 1000, 1000,
         nullptr, nullptr, hInstance, nullptr);
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
-#ifdef _DEBUG
     HWND hControlWnd = CreateWindowEx(
         0,
         L"ControlWindowClass",
@@ -209,23 +261,26 @@ int WINAPI wWinMain(
     );
     ShowWindow(hControlWnd, SW_SHOW);
     UpdateWindow(hControlWnd);
-#endif
+
+
+    //std::thread galvo(GalvoThread);
+    //galvo.detach();
+
 
     // message + render loop
-    g_renderTarget.Initialize(hwnd);
-	laserRenderer.Initialize(g_renderTarget.GetD2DRenderTarget());
-    laserRenderer.Resize(g_renderTarget.getScreenWidth(), g_renderTarget.getScreenHeight());
+    FrameRenderer renderer(hwnd);
     MSG msg;
+    //bool running = true;
     int mouseX = 0;
     int mouseY = 0;
 	float hue = 0.0f;
 	float angle = 0.0f;
-    const float simsteps_per_second = 30000.0f;
-	const float fps = 60.0f;
-    const float simsteps = simsteps_per_second / fps;
+    RenderFrame renderFrame;
+    RenderFrame prevframe;
+    float simsteps_per_second = 30000.0f;
+	float fps = 60.0f;
+    float simsteps = simsteps_per_second / fps;
     float dt = 1.0f / simsteps;
-	LaserFrameGenerator frameGen;
-    bool running = true;
     while (running)
     {
         // pump messages
@@ -245,42 +300,25 @@ int WINAPI wWinMain(
                 int width = LOWORD(msg.lParam);
                 int height = HIWORD(msg.lParam);
 
-                g_renderTarget.OnResize(width, height);
-                laserRenderer.Resize(width, height);
+                renderer.OnResize(width, height);
             }
         }
         if (!running) break;
 
         // generate frame (replace with UDP receiver later)
+        UpdateAngle(hue, 0.01f);
+        UpdateAngle(angle, 0.01f);
 
         //LaserFrame lframe = GenerateRotatingCubeFrameInterpolated(angle);
+        LaserFrame lframe = GenerateCubeFrame(angle);
 
-        g_laserFrameGen.NewFrame();
-		LaserColor color(0.0f, 180.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-        g_laserFrameGen.AddSquare(0.125f, 0.125f, 0.8f, color);
-		float mouseXpos = (float(mouseX) / g_renderTarget.getScreenWidth());
-		float mouseposY = (float(mouseY) / g_renderTarget.getScreenHeight());
-        g_laserFrameGen.AddSquare((mouseXpos-0.5f) * 2.4f, (mouseposY-0.5f) * 2.4f, 0.5f, color);
-        //Draw here...
-		//Draw a square that changes size with mouse Y
+        //LaserFrame lframe = GenerateSquare();
+        simulator.LoadFrame(std::move(lframe));
+		simulator.Simulate(dt);
 
-        // TODO:
-        // Create UDP packet from Frame
-
-
-        // Instead, we simulate and render in our window
-        g_GalvoSim.Simulate(dt);
-
-        laserRenderer.Clear();
-        laserRenderer.Accumulate(g_simFrame);
-
-        auto* rt = g_renderTarget.GetD2DRenderTarget();
-        rt->BeginDraw();
-        rt->Clear(D2D1::ColorF(D2D1::ColorF::Black));
-
-        laserRenderer.Present();
-
-        rt->EndDraw();
+        // render frame
+        renderer.DrawFrame(simulator.getRenderFrame(), prevframe);
+        //prevframe = simulator.getRenderFrame();
 
         // simple frame cap ~60Hz (cooperative)
         Sleep(1);
