@@ -1,7 +1,9 @@
 #pragma once
 #include <d2d1.h>
-#include "Helpers.h"
-#include "GalvoSimulator.h"
+#include <vector>
+
+struct SimPoint;
+using SimFrame = std::vector<SimPoint>;
 
 class FrameRenderer
 {
@@ -9,10 +11,12 @@ public:
     FrameRenderer(HWND hwnd);
     ~FrameRenderer();
     void OnResize(int width, int height);
-    void DrawFrame(const RenderFrame& currentframe, const RenderFrame& previousframe);
+    void DrawFrame(const SimFrame& frame);
+    int getScreenWidth() const { return m_width; }
+    int getScreenHeight() const { return m_height; }
 
 private:
-    void SimToScreen(float x, float y, int& outX, int& outY);
+    D2D1_POINT_2F SimToScreen(float x, float y) const;
     ID2D1Factory* pFactory = nullptr;
     ID2D1HwndRenderTarget* pRenderTarget = nullptr;
     ID2D1SolidColorBrush* pBrush = nullptr; // single reusable brush

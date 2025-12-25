@@ -1,47 +1,41 @@
 #pragma once
 #include <vector>
-#include <mutex>
-#include <atomic>
 #include <cstdint>
-#include "Helpers.h"
+#include "LaserFrameGenerator.h"
+
+struct SimPoint
+{
+    float x; // -1.0 , 1.0
+    float y; // -1.0 , 1.0
+    uint8_t r, g, b;
+    uint8_t flags; // 1 = laser on, 0 = blank
+};
+
+using SimFrame = std::vector<SimPoint>;
 
 class GalvoSimulator
 {
 public:
     GalvoSimulator();
-
-    // give it the next “ideal frame” from your animation
-    void LoadFrame(LaserFrame&& lF);
-    RenderFrame getRenderFrame();
-    void Simulate(float dt);
+    void Simulate(const LaserFrame& frame, float dt);
+	SimFrame& GetSimFrame() { return simFrame; }
+private:
     void SetMaxAngle(float newMaxAngle);
-
-    // 30 kHz update
-    bool Step(float dt);
-
+    bool Step(const LaserFrame& frame, float dt);
+    float ConvertAngle(const int16_t angle) const;
+    void CalcScreenPositions();
     // physical properties (tunable)
+    SimFrame simFrame;
     float damping;
     float stiffness;
     float maxSpeed;
     float toleranceSq;
     float maxAngle;
-
-private:
-    float ConvertAngle(const int16_t angle) const;
-    void CalcScreenPositions();
     // galvo physics state
     float scaleFactor;
     float AngleX, AngleY;
     float AngularVelX, AngularVelY;
     float screenX;
     float screenY;
-
-	ColorHSV color; // point color cycling
-
-    // target point stream
-    LaserFrame lFrame;
-    RenderFrame rFrame;
     size_t frameIndex;
-
-    mutable std::mutex mtx;
 };

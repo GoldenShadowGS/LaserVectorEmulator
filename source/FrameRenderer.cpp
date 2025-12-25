@@ -1,4 +1,5 @@
 #include "FrameRenderer.h"
+#include "GalvoSimulator.h"
 #include <stdexcept>
 #pragma comment(lib, "d2d1.lib")
 #undef max
@@ -48,50 +49,37 @@ void FrameRenderer::OnResize(int width, int height)
     }
 }
 
-void FrameRenderer::DrawFrame(const RenderFrame& currentframe, const RenderFrame& previousframe)
+void FrameRenderer::DrawFrame(const SimFrame& frame)
 {
     pRenderTarget->BeginDraw();
     pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::Black));
 
-    if (previousframe.size() > 1)
+
+    if (!frame.empty())
     {
-        for (size_t i = 0; i < previousframe.size() - 1; i++)
+		const size_t stride = 1;
+        for (size_t i = 0; i < frame.size() - 1; i += stride)
         {
-            const auto& a = previousframe[i];
-            const auto& b = previousframe[i + 1];
+            const auto& p1 = frame[i];
+            const auto& p2 = frame[i + 1];
 
-            if (!a.flags && !b.flags) continue;
-
-            pBrush->SetColor(D2D1::ColorF(a.r / 512.0f, a.g / 512.0f, a.b / 512.0f));
-            pRenderTarget->DrawLine(D2D1::Point2F((float)a.x, (float)a.y), D2D1::Point2F((float)b.x, (float)b.y), pBrush, 1.0f);
-        }
-    }
-    if (currentframe.size() > 1)
-    {
-        for (size_t i = 0; i < currentframe.size() - 1; i++)
-        {
-            const auto& a = currentframe[i];
-            const auto& b = currentframe[i + 1];
-
-            if (!a.flags) 
+            if (!p1.flags)
                 continue;
 
-            int p1x;
-            int p1y;
-            int p2x;
-			int p2y;
-            SimToScreen(a.x,a.y,p1x,p1y);
-            SimToScreen(b.x, b.y, p2x, p2y);
+            D2D1_POINT_2F r1 = SimToScreen(p1.x,p1.y);
+            D2D1_POINT_2F r2 = SimToScreen(p2.x, p2.y);
+			FLOAT size = 2.0f;
 
-            pBrush->SetColor(D2D1::ColorF(a.r / 255.0f, a.g / 255.0f, a.b / 255.0f));
-            pRenderTarget->DrawLine(D2D1::Point2F((float)p1x, (float)p1y), D2D1::Point2F((float)p2x, (float)p2y), pBrush, 1.0f);
+            pBrush->SetColor(D2D1::ColorF(p1.r / 255.0f, p1.g / 255.0f, p1.b / 255.0f));
+            pRenderTarget->DrawLine(r1, r2, pBrush, 1.0f);
+            //pRenderTarget->FillEllipse(D2D1::Ellipse(r1, size, size), pBrush);
         }
     }
 
     pRenderTarget->EndDraw();
 }
 
-void FrameRenderer::SimToScreen(float x, float y, int& outX, int& outY)
+D2D1_POINT_2F FrameRenderer::SimToScreen(float x, float y) const
 {
     float winAspect = float(m_width) / float(m_height);
 
@@ -114,61 +102,8 @@ void FrameRenderer::SimToScreen(float x, float y, int& outX, int& outY)
     float drawX = x * sx;
     float drawY = y * sy;
 
-    outX = int((drawX + 1.0f) * 0.5f * m_width);
-    outY = int((drawY + 1.0f) * 0.5f * m_height);
+    //outX = (drawX + 1.0f) * 0.5f * m_width;
+    //outY = int((drawY + 1.0f) * 0.5f * m_height);
+    return D2D1::Point2F((drawX + 1.0f) * 0.5f * m_width, (drawY + 1.0f) * 0.5f * m_height);
 }
-
-
-//void FrameRenderer::RenderSimulated(const std::vector<SimPoint>& samples)
-//{
-//    if (!pRenderTarget) return;
-//
-//    pRenderTarget->BeginDraw();
-//    pRenderTarget->Clear(D2D1::ColorF(0, 0, 0));
-//
-//    D2D1_SIZE_F size = pRenderTarget->GetSize();
-//    float cx = size.width * 0.5f;
-//    float cy = size.height * 0.5f;
-//    float scale = std::min(cx, cy) * 0.9f;
-//
-//    // Use one brush for all colors
-//    if (!pBrush) pRenderTarget->CreateSolidColorBrush(
-//        D2D1::ColorF(1, 1, 1), &pBrush);
-//
-//    bool penDown = false;
-//    float px = 0, py = 0;
-//
-//    for (const SimPoint& s : samples)
-//    {
-//        float x = cx + s.x * scale;
-//        float y = cy - s.y * scale;
-//
-//        if (!s.blank)
-//        {
-//            pBrush->SetColor(D2D1::ColorF(
-//                s.r / 255.0f,
-//                s.g / 255.0f,
-//                s.b / 255.0f
-//            ));
-//
-//            if (penDown)
-//            {
-//                pRenderTarget->DrawLine(
-//                    D2D1::Point2F(px, py),
-//                    D2D1::Point2F(x, y),
-//                    pBrush, 1.5f);
-//            }
-//            penDown = true;
-//        }
-//        else
-//        {
-//            penDown = false;
-//        }
-//
-//        px = x;
-//        py = y;
-//    }
-//
-//    pRenderTarget->EndDraw();
-//}
 

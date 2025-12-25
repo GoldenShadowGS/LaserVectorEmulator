@@ -1,7 +1,7 @@
 #include "GalvoSimulator.h"
 #include <algorithm>
 #include <cmath>
-#include <iostream>
+
 
 static float constexpr DEG_TO_RAD = 0.01745329251994f;
 
@@ -17,44 +17,33 @@ GalvoSimulator::GalvoSimulator()
     damping = 20.0f;
     stiffness = 1000.0f;
     maxSpeed = 50.0f;
-    maxAngle = 30.0f;
+    maxAngle = 35.0f;
     scaleFactor = 1.0f;
-    toleranceSq = 0.01f;
+    toleranceSq = 0.1f;
     frameIndex = 0;
-    SetMaxAngle(20);
-}
-
-void GalvoSimulator::LoadFrame(LaserFrame&& lF)
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    //std::cout << "Loading frame, size=" << lF.size() << std::endl;
-    lFrame = std::move(lF);
-    rFrame.clear();
-    rFrame.reserve(lFrame.size());
-    frameIndex = 0;
-
+    SetMaxAngle(maxAngle);
 }
 
 void GalvoSimulator::SetMaxAngle(float newMaxAngle)
 {
-    std::lock_guard<std::mutex> lock(mtx);
 	maxAngle = newMaxAngle;
     scaleFactor = 1.0f / tan(maxAngle * 0.01745329251994f);
 }
 
-void GalvoSimulator::Simulate(float dt)
+void GalvoSimulator::Simulate(const LaserFrame& frame, float dt)
 {
-    std::lock_guard<std::mutex> lock(mtx);
-    while(Step(dt));
+    simFrame.clear();
+    frameIndex = 0;
+    while(Step(frame, dt));
 }
 
-bool GalvoSimulator::Step(float dt)
+bool GalvoSimulator::Step(const LaserFrame& frame, float dt)
 {
-    if (lFrame.empty())
+    if (frame.empty())
         return false;
 
     // get target
-    const LaserPoint& target = lFrame[frameIndex];
+    const LaserPoint& target = frame[frameIndex];
     float txa = std::clamp(ConvertAngle(target.x), -maxAngle, maxAngle);
     float tya = std::clamp(ConvertAngle(target.y), -maxAngle, maxAngle);
 
@@ -80,30 +69,18 @@ bool GalvoSimulator::Step(float dt)
     AngleX += AngularVelX * dt;
     AngleY += AngularVelY * dt;
 
-
-    color.addHue(0.25f);
     CalcScreenPositions();
-    rFrame.push_back({ screenX, screenY, color.getR(), color.getG(), color.getB(), target.flags});
+    simFrame.push_back({ screenX, screenY, target.r, target.g, target.b, target.flags});
 
     // advance to next target point
     if ((dx * dx + dy * dy) < toleranceSq)
-    {
-        frameIndex = (frameIndex + 1);
-        color.setHSV(frameIndex * 20.0f, 1.0f, 1.0f);
-
-    }
-    return frameIndex < lFrame.size();
+        frameIndex++;
+    return frameIndex < frame.size();
 }
 
 float GalvoSimulator::ConvertAngle(const int16_t angle) const
 {
     return (float(angle) / 32768) * maxAngle;
-}
-
-RenderFrame GalvoSimulator::getRenderFrame()
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    return rFrame;
 }
 
 void GalvoSimulator::CalcScreenPositions()
