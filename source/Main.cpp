@@ -88,14 +88,20 @@ int WINAPI wWinMain(
         if (!running) break;
 
         frameGenerator.NewFrame();
-        LaserColor color(0.0f, 100.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-
+        constexpr LaserColor::RGB8 Red{ 255,0,0 };
+        constexpr LaserColor::RGB8 Green { 1,255,0 };
+        constexpr LaserColor::RGB8 Blue { 0,0,255 };
+        LaserColor color(Red, Green);
         float mouseXpos = (float(mouseX) / frameRenderer.getScreenWidth());
         float mouseposY = (float(mouseY) / frameRenderer.getScreenHeight());
-        shapeGenerator.CreateSquare(0.0f, 0.0f, 0.5f, color);
-        shapeGenerator.CreateSquare((mouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f, 0.5f, color);
+        float oppositemouseXpos = ((frameRenderer.getScreenWidth() - float(mouseX)) / frameRenderer.getScreenWidth());
+        frameGenerator.LineTo(Point2D(-0.8f, 0.0f), LaserFrameGenerator::LaserState::OFF, LaserFrameGenerator::PointSharpness::SHARP, color);
+        frameGenerator.LineTo(Point2D(0.8f, 0.5f), LaserFrameGenerator::LaserState::ON, LaserFrameGenerator::PointSharpness::SHARP, color);
+        shapeGenerator.CreateSquare(Point2D(0.0f, 0.0f), 0.5f, color);
+        shapeGenerator.CreateSquare(Point2D((mouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
+        shapeGenerator.CreateSquare(Point2D((oppositemouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
 
-        galvoSimulator.Simulate(frameGenerator.GetLaserFrame(), dt);
+        galvoSimulator.Simulate(frameGenerator.GetLaserFrame(), dt); 
 
 		frameRenderer.DrawFrame(galvoSimulator.GetSimFrame());
 

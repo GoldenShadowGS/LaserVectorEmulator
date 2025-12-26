@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#undef max
+#undef min
 
 class LaserColor
 {
@@ -13,8 +15,20 @@ public:
 
     // Solid color
     LaserColor(float h, float s, float v) noexcept : m_h0(h), m_h1(h), m_s0(s), m_s1(s), m_v0(v), m_v1(v) {}
+    LaserColor(RGB8 color) noexcept : m_h0(0.0f), m_h1(0.0f), m_s0(0.0f), m_s1(0.0f), m_v0(0.0f), m_v1(0.0f) 
+    {
+        RGBtoHSV(color, m_h0, m_s0, m_v0);
+        m_h1 = m_h0;
+        m_s1 = m_s0;
+		m_v1 = m_v0;
+    }
+    LaserColor(RGB8 color0, RGB8 color1) noexcept : m_h0(0.0f), m_h1(0.0f), m_s0(0.0f), m_s1(0.0f), m_v0(0.0f), m_v1(0.0f)
+    {
+        RGBtoHSV(color0, m_h0, m_s0, m_v0);
+        RGBtoHSV(color1, m_h1, m_s1, m_v1);
+    }
 
-    // Gradient
+	// Gradient hue0/hue1/saturation/value
     LaserColor(float h0, float h1, float s0, float s1, float v0, float v1) noexcept : m_h0(h0), m_h1(h1), m_s0(s0), m_s1(s1), m_v0(v0), m_v1(v1) {}
 
     // Solid color (t=0)
@@ -87,5 +101,43 @@ private:
         color.b = static_cast<uint8_t>(std::clamp(int(b * 255.0f + 0.5f), 0, 255));
 
         return color;
+    }
+
+    static void RGBtoHSV(RGB8 color, float& H, float& S, float& V)
+    {
+        float r = color.r / 255.0f;
+        float g = color.g / 255.0f;
+        float b = color.b / 255.0f;
+
+        float maxv = std::max(r, std::max(g, b));
+        float minv = std::min(r, std::min(g, b));
+        float delta = maxv - minv;
+
+        // Value
+        V = maxv;
+
+        // Saturation
+        S = (maxv == 0.0f) ? 0.0f : (delta / maxv);
+
+        // Hue
+        if (delta == 0.0f)
+        {
+            H = 0.0f;
+        }
+        else if (maxv == r)
+        {
+            H = 60.0f * fmod(((g - b) / delta), 6.0f);
+        }
+        else if (maxv == g)
+        {
+            H = 60.0f * (((b - r) / delta) + 2.0f);
+        }
+        else
+        {
+            H = 60.0f * (((r - g) / delta) + 4.0f);
+        }
+
+        if (H < 0.0f)
+            H += 360.0f;
     }
 };

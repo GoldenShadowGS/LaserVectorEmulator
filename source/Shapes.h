@@ -6,7 +6,7 @@ class ShapeGenerator
 {
 public:
 	ShapeGenerator(LaserFrameGenerator& generator) : m_LaserGen(generator) {}
-	void CreateSquare(float xc, float yc, float size, LaserColor color);
+	void CreateSquare(Point2D center, float size, LaserColor color);
 private:
 	LaserFrameGenerator& m_LaserGen;
 };

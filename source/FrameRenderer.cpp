@@ -1,6 +1,7 @@
 #include "FrameRenderer.h"
 #include "GalvoSimulator.h"
 #include <stdexcept>
+#include <d2d1.h>
 #pragma comment(lib, "d2d1.lib")
 #undef max
 #undef min
@@ -57,7 +58,7 @@ void FrameRenderer::DrawFrame(const SimFrame& frame)
 
     if (!frame.empty())
     {
-		const size_t stride = 1;
+		constexpr size_t stride = 1;
         for (size_t i = 0; i < frame.size() - 1; i += stride)
         {
             const auto& p1 = frame[i];
@@ -68,11 +69,11 @@ void FrameRenderer::DrawFrame(const SimFrame& frame)
 
             D2D1_POINT_2F r1 = SimToScreen(p1.x,p1.y);
             D2D1_POINT_2F r2 = SimToScreen(p2.x, p2.y);
-			FLOAT size = 2.0f;
+			FLOAT size = 1.0f;
 
             pBrush->SetColor(D2D1::ColorF(p1.r / 255.0f, p1.g / 255.0f, p1.b / 255.0f));
-            pRenderTarget->DrawLine(r1, r2, pBrush, 1.0f);
-            //pRenderTarget->FillEllipse(D2D1::Ellipse(r1, size, size), pBrush);
+            //pRenderTarget->DrawLine(r1, r2, pBrush, 1.0f);
+            pRenderTarget->FillEllipse(D2D1::Ellipse(r1, size, size), pBrush);
         }
     }
 
