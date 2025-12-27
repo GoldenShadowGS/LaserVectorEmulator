@@ -133,7 +133,7 @@ public:
     void LineTo(Point2D next, LaserState laserstate, PointSharpness pointsharpness, LaserColor color);
     void ArcTo(Point2D center, Point2D next, bool LaserON, LaserColor color, bool ccw);
 private:
-    Point2D Lerp(Point2D next, float t) const;
+    Point2D LerpTo(Point2D next, float t) const;
     void ClampPoint2D(Point2D& p);
     Distortion m_Distortion;
     LaserFrame m_Frame;

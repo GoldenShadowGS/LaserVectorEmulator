@@ -97,7 +97,7 @@ int WINAPI wWinMain(
         float oppositemouseXpos = ((frameRenderer.getScreenWidth() - float(mouseX)) / frameRenderer.getScreenWidth());
         frameGenerator.LineTo(Point2D(-0.8f, 0.0f), LaserFrameGenerator::LaserState::OFF, LaserFrameGenerator::PointSharpness::SHARP, color);
         frameGenerator.LineTo(Point2D(0.8f, 0.5f), LaserFrameGenerator::LaserState::ON, LaserFrameGenerator::PointSharpness::SHARP, color);
-        shapeGenerator.CreateSquare(Point2D(0.0f, 0.0f), 0.5f, color);
+        shapeGenerator.CreateSquare(Point2D(0.0f, 0.0f), 1.8f, color);
         shapeGenerator.CreateSquare(Point2D((mouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
         shapeGenerator.CreateSquare(Point2D((oppositemouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
 
