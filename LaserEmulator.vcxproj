@@ -137,6 +137,8 @@
     <ClInclude Include="source\GalvoSimulator.h" />
     <ClInclude Include="source\LaserColor.h" />
     <ClInclude Include="source\LaserFrameGenerator.h" />
+    <ClInclude Include="source\Matrix3X3.h" />
+    <ClInclude Include="source\Point2D.h" />
     <ClInclude Include="source\Shapes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

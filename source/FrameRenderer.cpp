@@ -72,8 +72,8 @@ void FrameRenderer::DrawFrame(const SimFrame& frame)
 			FLOAT size = 1.0f;
 
             pBrush->SetColor(D2D1::ColorF(p1.r / 255.0f, p1.g / 255.0f, p1.b / 255.0f));
-            //pRenderTarget->DrawLine(r1, r2, pBrush, 1.0f);
-            pRenderTarget->FillEllipse(D2D1::Ellipse(r1, size, size), pBrush);
+            pRenderTarget->DrawLine(r1, r2, pBrush, 1.0f);
+            //pRenderTarget->FillEllipse(D2D1::Ellipse(r1, size, size), pBrush);
         }
     }
 

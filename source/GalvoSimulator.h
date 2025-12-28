@@ -16,7 +16,7 @@ using SimFrame = std::vector<SimPoint>;
 class GalvoSimulator
 {
 public:
-    GalvoSimulator();
+    GalvoSimulator(float maxAngle);
     void Simulate(const LaserFrame& frame, float dt);
 	SimFrame& GetSimFrame() { return simFrame; }
 private:
@@ -30,7 +30,7 @@ private:
     float stiffness;
     float maxSpeed;
     float toleranceSq;
-    float maxAngle;
+    float m_maxAngle;
     // galvo physics state
     float scaleFactor;
     float AngleX, AngleY;

@@ -47,5 +47,11 @@
     <ClInclude Include="source\Shapes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="source\Point2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Matrix3X3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

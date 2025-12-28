@@ -7,7 +7,7 @@
 
 static float constexpr DEG_TO_RAD = 0.01745329251994f;
 
-GalvoSimulator::GalvoSimulator()
+GalvoSimulator::GalvoSimulator(float maxAngle)
 {
     // galvo physics state
     AngleX = 0;
@@ -27,7 +27,7 @@ GalvoSimulator::GalvoSimulator()
     //maxSpeed = 150.0f;
     //toleranceSq = 0.1f;
 
-    maxAngle = 35.0f;
+    m_maxAngle = maxAngle;
     scaleFactor = 1.0f;
     frameIndex = 0;
     SetMaxAngle(maxAngle);
@@ -35,8 +35,8 @@ GalvoSimulator::GalvoSimulator()
 
 void GalvoSimulator::SetMaxAngle(float newMaxAngle)
 {
-	maxAngle = newMaxAngle;
-    scaleFactor = 1.0f / tan(maxAngle * 0.01745329251994f);
+    m_maxAngle = newMaxAngle;
+    scaleFactor = 1.0f / tan(m_maxAngle * 0.01745329251994f);
 }
 
 void GalvoSimulator::Simulate(const LaserFrame& frame, float dt)
@@ -56,8 +56,8 @@ bool GalvoSimulator::Step(const LaserFrame& frame, float dt)
     const LaserPoint& target = frame[frameIndex];
 
     //Temp Test
-    //float x = std::clamp(ConvertAngle(target.x), -maxAngle, maxAngle);
-    //float y = std::clamp(ConvertAngle(target.y), -maxAngle, maxAngle);
+    //float x = std::clamp(ConvertAngle(target.x), -m_maxAngle, m_maxAngle);
+    //float y = std::clamp(ConvertAngle(target.y), -m_maxAngle, m_maxAngle);
     //AngleX = x;
     //AngleY = y;
     //CalcScreenPositions();
@@ -65,8 +65,8 @@ bool GalvoSimulator::Step(const LaserFrame& frame, float dt)
     //frameIndex++;
     //return frameIndex < frame.size();
 
-    float txa = std::clamp(ConvertAngle(target.x), -maxAngle, maxAngle);
-    float tya = std::clamp(ConvertAngle(target.y), -maxAngle, maxAngle);
+    float txa = std::clamp(ConvertAngle(target.x), -m_maxAngle, m_maxAngle);
+    float tya = std::clamp(ConvertAngle(target.y), -m_maxAngle, m_maxAngle);
 
     // spring-damper model
     float dx = txa - AngleX;
@@ -108,7 +108,7 @@ bool GalvoSimulator::Step(const LaserFrame& frame, float dt)
 
 float GalvoSimulator::ConvertAngle(const int16_t angle) const
 {
-    return (float(angle) / 32768) * maxAngle;
+    return (float(angle) / 32768) * m_maxAngle;
 }
 
 void GalvoSimulator::CalcScreenPositions()
