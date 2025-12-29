@@ -127,17 +127,21 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="source\FrameRenderer.cpp" />
+    <ClCompile Include="source\InputManager.cpp" />
     <ClCompile Include="source\LaserFrameGenerator.cpp" />
     <ClCompile Include="source\GalvoSimulator.cpp" />
     <ClCompile Include="source\Main.cpp" />
+    <ClCompile Include="source\Object.cpp" />
     <ClCompile Include="source\Shapes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\FrameRenderer.h" />
     <ClInclude Include="source\GalvoSimulator.h" />
+    <ClInclude Include="source\InputManager.h" />
     <ClInclude Include="source\LaserColor.h" />
     <ClInclude Include="source\LaserFrameGenerator.h" />
     <ClInclude Include="source\Matrix3X3.h" />
+    <ClInclude Include="source\Object.h" />
     <ClInclude Include="source\Point2D.h" />
     <ClInclude Include="source\Shapes.h" />
   </ItemGroup>

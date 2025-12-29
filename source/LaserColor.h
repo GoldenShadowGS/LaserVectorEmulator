@@ -12,7 +12,8 @@ public:
     {
         uint8_t r, g, b;
     };
-
+    //Default White
+	LaserColor() : m_h0(0.0f), m_h1(0.0f), m_s0(0.0f), m_s1(0.0f), m_v0(1.0f), m_v1(1.0f) {}
     // Solid color
     LaserColor(float h, float s, float v) noexcept : m_h0(h), m_h1(h), m_s0(s), m_s1(s), m_v0(v), m_v1(v) {}
     LaserColor(RGB8 color) noexcept : m_h0(0.0f), m_h1(0.0f), m_s0(0.0f), m_s1(0.0f), m_v0(0.0f), m_v1(0.0f) 

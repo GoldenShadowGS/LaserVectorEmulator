@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include "LaserColor.h"
 #include "LaserFrameGenerator.h"
 #include "Matrix3x3.h"
@@ -19,20 +20,14 @@ class Linkage
 {
 public:
 	//c1 is the offset of 2nd center from the origin
-	Linkage(LaserFrameGenerator& generator, Point2D c1, float r1, float r2, float linklength, float barlength) :
-		m_LaserGen(generator),
-		m_c1(c1),
-		m_r1(r1),
-		m_r2(r2),
-		m_linklength(linklength),
-		m_barlength(barlength)
-	{}
+	Linkage(LaserFrameGenerator& generator, Point2D c1, float r1, float r2, float linklength, float barlength);
 	void DrawLinkage(Mat3 matrix, float angle, LaserColor color) const;
 private:
 	float calculateTheta(float angle) const;
-	Point2D calculateL1(Mat3 matrix, float angle) const;
+	Point2D calculateL1(float angle) const;
 	LaserFrameGenerator& m_LaserGen;
 	Point2D m_c1;
+	std::vector<Point2D> m_linkagepoints;
 	float m_r1;
 	float m_r2;
 	float m_linklength;

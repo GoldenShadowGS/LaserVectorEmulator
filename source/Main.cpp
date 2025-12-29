@@ -3,6 +3,10 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <cmath>
+#include <string>
+#include <sal.h>
+#include <chrono>
 #include "GalvoSimulator.h"
 #include "LaserFrameGenerator.h"
 #include "FrameRenderer.h"
@@ -10,8 +14,11 @@
 #include "Shapes.h"
 #include "Point2D.h"
 #include "Matrix3X3.h"
+#include "InputManager.h"
+#include "Object.h"
 #pragma comment(lib, "Comctl32.lib")
 
+using Clock = std::chrono::high_resolution_clock;
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -60,31 +67,57 @@ int WINAPI wWinMain(
     GalvoSimulator galvoSimulator(maxAngle);
 	FrameRenderer frameRenderer(hwnd);
     ShapeGenerator  shapeGenerator(frameGenerator);
+    
+    // Input
+    InputManager input;
+    // Default keybinds
+    input.Bind("Thrust", 'W');
+    input.Bind("Brake", 'S');
+    input.Bind("TurnLeft", 'A');
+    input.Bind("TurnRight", 'D');
+    input.Bind("Fire", VK_LBUTTON);
+    input.Bind("MenuBack", VK_ESCAPE);
+
+    constexpr LaserColor::RGB8 Red { 255,0,0 };
+    constexpr LaserColor::RGB8 Green { 0,255,0 };
+    constexpr LaserColor::RGB8 Blue { 255,255,255 };
+    LaserColor colorredgreen(Red, Green);
+    LaserColor colorbluegreen(Blue, Green);
+	float angleRads = 0.0f;
+	GameContext context(frameGenerator, input, shapeGenerator);
+
+    context.m_ShipPool.Spawn(Ship{ Mat3::Scale(0.05f, 0.05f), LaserColor(0.0f, 0.0f, 1.0f), Point2D(0.0f, 0.0f), Point2D(0.0f, 0.0f), 0.0f, 0.0f, 10, true });
+
     // message + render loop
     MSG msg;
-    int mouseX = 0;
-    int mouseY = 0;
-    //Linkage(LaserFrameGenerator & generator, Point2D c1, float r1, float r2, float linklength, float barlength) :
-    Linkage linkage(frameGenerator, Point2D(0.1f, -0.3f), 0.2f, 0.3f, 0.4f, 0.8f);
+    //Linkage linkage(frameGenerator, Point2D(0.1f, -0.3f), 0.2f, 0.3f, 0.4f, 0.8f);
     float simsteps_per_second = 30000.0f;
 	float fps = 60.0f;
     float simsteps = simsteps_per_second / fps;
     float dt = 1.0f / simsteps;
 	bool running = true;
-    float angleRads = 0.0f;
+    auto lastTime = Clock::now();
     while (running)
     {
-        // pump messages
+        // Measure current time
+        auto currentTime = Clock::now();
+        std::chrono::duration<float> elapsed = currentTime - lastTime;
+        float deltaT = elapsed.count(); // seconds since last frame
+		context.SetDeltaTime(deltaT);
+        lastTime = currentTime;
+
+		// INPUT
+        input.BeginFrame();
+        input.Update();
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT) { running = false; break; }
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-
+            input.HandleEvent(msg);
             if (msg.message == WM_MOUSEMOVE)
             {
-                mouseX = GET_X_LPARAM(msg.lParam);
-                mouseY = GET_Y_LPARAM(msg.lParam);
+				input.SetMousePos(float(GET_X_LPARAM(msg.lParam)), float(GET_Y_LPARAM(msg.lParam)));
             }
             if (msg.message == WM_SIZE)
             {
@@ -92,43 +125,41 @@ int WINAPI wWinMain(
                 int height = HIWORD(msg.lParam);
 
                 frameRenderer.OnResize(width, height);
+				input.SetScreenSize(width, height);
             }
         }
         if (!running) break;
-        angleRads += 0.1f;
-        frameGenerator.NewFrame();
-        constexpr LaserColor::RGB8 Red{ 255,0,0 };
-        constexpr LaserColor::RGB8 Green { 1,255,0 };
-        constexpr LaserColor::RGB8 Blue { 0,0,255 };
-        LaserColor colorredgreen(Red, Green);
-        LaserColor colorbluegreen(Blue, Green);
-        float mouseXpos = ((float(mouseX) / frameRenderer.getScreenWidth()) - 0.5f) * 2.6f;
-        float mouseposY = ((float(mouseY) / frameRenderer.getScreenHeight()) - 0.5f) * 2.6f;
-        float mouseangle = atan2f(mouseposY, mouseXpos);
-        Mat3 spinmatrix = Mat3::Rotation(angleRads);
-        Mat3 mousepositionMatrix = Mat3::Translation(mouseXpos, mouseposY);
-        Mat3 scaling = Mat3::Scale(0.1f, 0.1f);
-        Mat3 transform = mousepositionMatrix * spinmatrix * Mat3::Translation(0.1f, 0.1f) * scaling;
-        float oppositemouseXpos = ((frameRenderer.getScreenWidth() - float(mouseX)) / frameRenderer.getScreenWidth());
-        //shapeGenerator.Square(transform, color);
-        //std::string debugMsg = "Debug message: Angle: " + std::to_string(mouseangle / 0.01745329251994f) + "\n";
-        //OutputDebugStringA(debugMsg.c_str());
-        Mat3 linkscaling = Mat3::Scale(1.0f, 1.0f);
-        linkage.DrawLinkage(linkscaling, mouseangle, colorredgreen);
-        //Point2D A1 = Point2D(0.35f, 0.0f);
-        //frameGenerator.LineTo(A1, LS::OFF, PS::SHARP, colorbluegreen);
-        //Point2D mousePos = Point2D(mouseXpos, mouseposY);
-        //Point2D C = Point2D(0.0f, 0.0f);
-        //frameGenerator.ArcTo(C, mousePos, LS::ON, PS::SHARP, colorredgreen, ARC::COUNTERCLOCKWISE);
-        //frameGenerator.LineTo(Point2D(0.8f, 0.5f), LaserFrameGenerator::LaserState::ON, LaserFrameGenerator::PointSharpness::SHARP, color);
-        //shapeGenerator.ArcTest(Point2D((mouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
-        //shapeGenerator.Square(Point2D((oppositemouseXpos - 0.5f) * 2.4f, (mouseposY - 0.5f) * 2.4f), 0.5f, color);
-        //frameGenerator.LineTo(Point2D(0.0f, 0.0f), LaserFrameGenerator::LaserState::OFF, LaserFrameGenerator::PointSharpness::SHARP, color);
 
+        //if (input.WasReleased("Fire"))
+        //{
+        //    std::string debugMsg = "Input: FIRE\n";
+        //    OutputDebugStringA(debugMsg.c_str());
+        //}
+
+
+        // trigger events from input
+        //if (input.IsActionPressed("Fire"))
+        //    context.events.Emit("Fire");
+
+        // UPDATE
+        context.UpdatePools();
+		//angleRads += 0.01f;
+  //      if (angleRads > 6.28318530718f)
+		//	angleRads -= 6.28318530718f;
+  //      Mat3 identitymatrix = Mat3::Identity();
+  //      Mat3 spinmatrix = Mat3::Rotation(angleRads);
+
+        //linkage.DrawLinkage(spinmatrix, angleRads, colorredgreen);
+
+        // Drawing
+        frameGenerator.NewFrame();
+        context.DrawPools();
+        // Simulate galvo physics
         galvoSimulator.Simulate(frameGenerator.GetLaserFrame(), dt); 
 
+		// Render
 		frameRenderer.DrawFrame(galvoSimulator.GetSimFrame());
-
+        input.EndFrame();
         Sleep(1);
     }
 

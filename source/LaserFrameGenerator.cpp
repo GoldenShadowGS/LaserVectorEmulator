@@ -1,7 +1,12 @@
 ﻿#include <algorithm>
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <vector>
 #include "LaserFrameGenerator.h"
+#include "Point2D.h"
+#include "LaserColor.h"
 
 static float constexpr DEG_TO_RAD = 0.01745329251994f;
 constexpr float PI = 3.14159265358979323846f;
@@ -31,7 +36,7 @@ float LaserFrameGenerator::ConvertAngle(const float angle) const
     return (float(angle) / 32768) * m_MaxAngle;
 }
 
-void LaserFrameGenerator::DistortionCorrection(Point2D& p)
+void LaserFrameGenerator::DistortionCorrection(Point2D& p) const 
 {
     // Input: x,y in [-1,1]
     float r = sqrtf(p.x * p.x + p.y * p.y);
@@ -207,11 +212,13 @@ void LaserFrameGenerator::ArcTo(Point2D center, Point2D next, LaserState laserst
     m_prev = radiusVecPrev.Rotate(sweepangle) + center;
 }
 
-void LaserFrameGenerator::DrawShape(const std::vector<Point2D>& points, LaserColor color)
+void LaserFrameGenerator::DrawShape(const std::vector<Point2D>& points, float t, LaserColor color)
 {
-    for (int i = 0; i < points.size(); i++)
+    int numpoints = static_cast<int>(t * float(points.size()));
+    numpoints = std::clamp(numpoints, 0, int(points.size()));
+    for (int i = 0; i < numpoints; i++)
     {
-        float t = float(i) / float(points.size());
+        float it = float(i) / float(points.size());
         Point2D ipoint = points.at(i);
         DistortionCorrection(ipoint);
         ipoint *= m_MaxValue;
@@ -220,7 +227,7 @@ void LaserFrameGenerator::DrawShape(const std::vector<Point2D>& points, LaserCol
         p.x = (int16_t)ipoint.x;
         p.y = (int16_t)ipoint.y;
         // Color interpolation
-        LaserColor::RGB8 colors = color.getRGB(t);
+        LaserColor::RGB8 colors = color.getRGB(it);
         p.r = colors.r;
         p.g = colors.g;
         p.b = colors.b;

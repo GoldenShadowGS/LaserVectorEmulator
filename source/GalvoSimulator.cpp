@@ -1,8 +1,10 @@
-#include "GalvoSimulator.h"
 #include <algorithm>
 #include <cmath>
-#include <windows.h>
-#include <string>
+#include <cstdint>
+#include "GalvoSimulator.h"
+#include "LaserFrameGenerator.h"
+//#include <windows.h>
+//#include <string>
 
 
 static float constexpr DEG_TO_RAD = 0.01745329251994f;
@@ -45,7 +47,7 @@ void GalvoSimulator::Simulate(const LaserFrame& frame, float dt)
     frameIndex = 0;
     while(Step(frame, dt));
 	//std::string debugMsg = "Debug message: Simulated frame with " + std::to_string(simFrame.size()) + " points.\n";
- //   OutputDebugStringA(debugMsg.c_str());
+    //OutputDebugStringA(debugMsg.c_str());
 }
 
 bool GalvoSimulator::Step(const LaserFrame& frame, float dt)

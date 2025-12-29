@@ -38,9 +38,9 @@ public:
     void SetAveragePointSpacing(float spacing) { m_averagePointSpacing = spacing; }
     void LineTo(Point2D next, LaserState laserstate, PointSharpness pointsharpness, LaserColor color);
     void ArcTo(Point2D center, Point2D next, LaserState laserstate, PointSharpness pointsharpness, LaserColor color, Arc direction);
-    void DrawShape(const std::vector<Point2D>& points, LaserColor color);
+    void DrawShape(const std::vector<Point2D>& points, float t, LaserColor color);
 private:
-	void DistortionCorrection(Point2D& p);
+	void DistortionCorrection(Point2D& p) const;
     float ConvertAngle(const float angle) const;
     Point2D LerpTo(Point2D next, float t) const;
     void ClampPoint2D(Point2D& p);
