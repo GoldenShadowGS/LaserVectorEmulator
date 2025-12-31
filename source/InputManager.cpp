@@ -1,6 +1,7 @@
 #include "InputManager.h"
 #include <Windows.h>
 #include <string>
+#include "Context.h"
 
 void InputManager::BeginFrame()
 {
@@ -29,26 +30,14 @@ void InputManager::HandleEvent(const MSG& msg)
     }
 }
 
-void InputManager::EndFrame() {}
-
-bool InputManager::KeyDown(int vk) const { return  curr[vk]; }
-bool InputManager::KeyPressed(int vk) const { return  curr[vk] && !prev[vk]; }
-bool InputManager::KeyReleased(int vk) const { return !curr[vk] && prev[vk]; }
-
-//bool InputManager::IsAction(const std::string& name) const
-//{
-//    auto it = bindings.find(name);
-//    return it != bindings.end() && KeyDown(it->second);
-//}
-
 void InputManager::Bind(const std::string& action, int vk)
 {
-    bindings[action] = vk;
+    actionKeys[action] = vk;
 }
 
-void InputManager::Update()
+void InputManager::Update(GameContext& context)
 {
-    for (auto& [name, key] : bindings)
+    for (auto& [name, key] : actionKeys)
     {
         bool isDown = GetAsyncKeyState(key) & 0x8000;
 
@@ -57,6 +46,14 @@ void InputManager::Update()
     }
     for (int vk = 0; vk < 256; ++vk)
         curr[vk] = (GetAsyncKeyState(vk) & 0x8000) != 0;
+
+    for (auto& [actionName, key] : actionKeys)
+    {
+        if (IsAction(actionName))
+        {
+            context.events.Emit(actionName);
+        }
+    }
 }
 
 

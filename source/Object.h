@@ -1,10 +1,12 @@
 #pragma once
 //#include <vector>
 //#include <memory>
-#include <array>
+#include <memory>
 #include "Point2D.h"
 #include "LaserColor.h"
 #include "Matrix3x3.h"
+#include "EventManager.h"
+#include "Shapes.h"
 
 class LaserFrameGenerator;
 class InputManager;
@@ -15,14 +17,20 @@ struct Ship
 {
     Mat3 m_ObjectMatrix;
     LaserColor m_color;
-    Point2D m_Pos;
-    Point2D m_Vel;
-    float m_Angle;
-    float m_AngVel; // angular velocity
-    int m_HitPoints;  // seconds remaining
-	bool m_PlayerControlled;
+    Point2D m_Pos = { 0.0f, 0.0f };
+    Point2D m_Vel = { 0.0f, 0.0f };
+    float m_Angle = 0.0f;
+    float m_AngVel = 0.0f; // angular velocity
+    int m_HitPoints = 0;  // seconds remaining
+	bool m_PlayerControlled = false;
     void Update(GameContext& context);
     void Draw(GameContext& context);
+	void Shoot(GameContext& context);
+    void BindControls(GameContext& context);
+    Point2D ForwardVector() const
+    {
+        return Point2D(std::cos(m_Angle), std::sin(m_Angle));
+	}
 };
 
 class ShipPool
@@ -72,11 +80,11 @@ struct Bullet
 {
     Mat3 m_ObjectMatrix;
     LaserColor m_color;
-    Point2D m_Pos;
-    Point2D m_Vel;
-    float m_Angle;
-	float m_AngVel; // angular velocity
-    float m_Lifetime;  // seconds remaining
+    Point2D m_Pos = { 0.0f, 0.0f };
+    Point2D m_Vel = { 0.0f, 0.0f };
+    float m_Angle = 0.0f;
+	float m_AngVel = 0.0f; // angular velocity
+    float m_Lifetime = 0.0f;  // seconds remaining
 };
 
 class BulletPool
@@ -84,7 +92,8 @@ class BulletPool
 public:
     BulletPool() {}
     static constexpr int MaxBullets = 256;
-    Bullet bullets[MaxBullets];
+    //Bullet bullets[MaxBullets];
+    std::unique_ptr<Bullet[]> bullets = std::make_unique<Bullet[]>(MaxBullets);
     int activeCount = 0;
 
     void Spawn(const Bullet& b)
@@ -119,6 +128,7 @@ public:
             }
         }
     }
+    void DrawAll(GameContext& context);
 };
 
 
@@ -133,19 +143,20 @@ struct Asteroid
     };
     Mat3 m_ObjectMatrix;
     LaserColor m_color;
-    Point2D m_Pos;
-    Point2D m_Vel;
-    float m_Angle;
-    float m_AngVel; // angular velocity
-    int m_HitPoints;  // seconds remaining
-	AsteroidSize m_Size;
+    Point2D m_Pos = { 0.0f, 0.0f };
+    Point2D m_Vel = { 0.0f, 0.0f };
+    float m_Angle = 0.0f;
+    float m_AngVel = 0.0f; // angular velocity
+    int m_HitPoints = 0;  // seconds remaining
+	AsteroidSize m_Size = AsteroidSize::SMALL;
 };
 
 class AsteroidPool
 {
 public:
     static constexpr int MaxAsteroids = 256;
-    Asteroid asteroids[MaxAsteroids];
+    //Asteroid asteroids[MaxAsteroids];
+    std::unique_ptr<Asteroid[]> asteroids = std::make_unique<Asteroid[]>(MaxAsteroids);
     int activeCount = 0;
 
     void Spawn(const Asteroid& a)
@@ -183,28 +194,3 @@ public:
 
 
 
-class GameContext
-{
-public:
-    GameContext(LaserFrameGenerator& laserGen, InputManager& inputManager, ShapeGenerator& shapeGen);
-	LaserFrameGenerator& m_laserGen;
-    InputManager& m_inputManager;
-	ShapeGenerator& m_shapeGen;
-	void SetWorldMatrix(const Mat3& matrix) { m_WorldMatrix = matrix; }
-    const Mat3& GetWorldMatrix() const { return m_WorldMatrix; }
-    void SetDeltaTime(float dt) { m_deltaT = dt; }
-	float GetDeltaTime() const { return m_deltaT; }
-	void SetMousePos(float mouseX, float mouseY) { m_MousePos = Point2D(mouseX, mouseY); }
-	const Point2D& GetMousePos() const { return m_MousePos; }
-    void UpdatePools();
-    void DrawPools();
-
-    BulletPool m_BulletPool;
-	AsteroidPool m_AsteroidPool;
-	ShipPool m_ShipPool;
-
-private:
-	Mat3 m_WorldMatrix;
-    Point2D m_MousePos;
-    float m_deltaT;
-};

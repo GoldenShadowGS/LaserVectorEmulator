@@ -52,6 +52,27 @@ void ShapeGenerator::Square(Mat3 matrix, LaserColor color)
     m_LaserGen.LineTo(p0, LS::ON, PS::SHARP, color);
 }
 
+void ShapeGenerator::Ship(Mat3 matrix, LaserColor color)
+{
+    Point2D shiparray[] = {
+        { -0.0497f, -0.0344f },
+        { -0.0971f, -0.0657f },
+        { 0.0972f, 0.0f },
+        { -0.0971f, 0.0657 },
+        { -0.0497f, 0.0329 } };
+    Point2D transformedarray[5];
+    for (int i = 0; i < 5; i++)
+    {
+        transformedarray[i] = matrix.transformPoint(shiparray[i]);
+    }
+    m_LaserGen.LineTo(transformedarray[0], LS::OFF, PS::SHARP, color);
+    for (int i = 1; i < 5; i++)
+    {
+        m_LaserGen.LineTo(transformedarray[i], LS::ON, PS::SHARP, color);
+    }
+    m_LaserGen.LineTo(transformedarray[0], LS::ON, PS::SHARP, color);
+}
+
 void ShapeGenerator::SmoothSquare(Point2D center, float size, LaserColor color)
 {
     float x0 = (center.x - size / 2.0f);

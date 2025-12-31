@@ -3,8 +3,6 @@
 
 #include <windows.h>
 #include <windowsx.h>
-#include <cmath>
-#include <string>
 #include <sal.h>
 #include <chrono>
 #include "GalvoSimulator.h"
@@ -16,6 +14,7 @@
 #include "Matrix3X3.h"
 #include "InputManager.h"
 #include "Object.h"
+#include "Context.h"
 #pragma comment(lib, "Comctl32.lib")
 
 using Clock = std::chrono::high_resolution_clock;
@@ -86,11 +85,17 @@ int WINAPI wWinMain(
 	float angleRads = 0.0f;
 	GameContext context(frameGenerator, input, shapeGenerator);
 
-    context.m_ShipPool.Spawn(Ship{ Mat3::Scale(0.05f, 0.05f), LaserColor(0.0f, 0.0f, 1.0f), Point2D(0.0f, 0.0f), Point2D(0.0f, 0.0f), 0.0f, 0.0f, 10, true });
+    context.m_ShipPool.Spawn(Ship { Mat3::Scale(1.0f, 1.0f), LaserColor(0.0f, 0.0f, 1.0f), Point2D(0.0f, 0.0f), Point2D(0.0f, 0.0f), 0.0f, 0.0f, 10, true });
+
+    // After creating ships
+    context.m_ShipPool.m_PlayerShipIndex = 0; // example
+    Ship& playerShip = context.m_ShipPool.ships[context.m_ShipPool.m_PlayerShipIndex];
+    playerShip.m_PlayerControlled = true;
+    playerShip.BindControls(context);
+
 
     // message + render loop
     MSG msg;
-    //Linkage linkage(frameGenerator, Point2D(0.1f, -0.3f), 0.2f, 0.3f, 0.4f, 0.8f);
     float simsteps_per_second = 30000.0f;
 	float fps = 60.0f;
     float simsteps = simsteps_per_second / fps;
@@ -108,7 +113,7 @@ int WINAPI wWinMain(
 
 		// INPUT
         input.BeginFrame();
-        input.Update();
+        input.Update(context);
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
             if (msg.message == WM_QUIT) { running = false; break; }
@@ -130,26 +135,8 @@ int WINAPI wWinMain(
         }
         if (!running) break;
 
-        //if (input.WasReleased("Fire"))
-        //{
-        //    std::string debugMsg = "Input: FIRE\n";
-        //    OutputDebugStringA(debugMsg.c_str());
-        //}
-
-
-        // trigger events from input
-        //if (input.IsActionPressed("Fire"))
-        //    context.events.Emit("Fire");
-
         // UPDATE
         context.UpdatePools();
-		//angleRads += 0.01f;
-  //      if (angleRads > 6.28318530718f)
-		//	angleRads -= 6.28318530718f;
-  //      Mat3 identitymatrix = Mat3::Identity();
-  //      Mat3 spinmatrix = Mat3::Rotation(angleRads);
-
-        //linkage.DrawLinkage(spinmatrix, angleRads, colorredgreen);
 
         // Drawing
         frameGenerator.NewFrame();

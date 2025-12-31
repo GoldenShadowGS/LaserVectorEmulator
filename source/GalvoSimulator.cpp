@@ -24,11 +24,6 @@ GalvoSimulator::GalvoSimulator(float maxAngle)
     maxSpeed = 200.0f;
     toleranceSq = 0.5f; // tighter
 
-    //damping = 20.0f;
-    //stiffness = 1000.0f;
-    //maxSpeed = 150.0f;
-    //toleranceSq = 0.1f;
-
     m_maxAngle = maxAngle;
     scaleFactor = 1.0f;
     frameIndex = 0;
@@ -46,8 +41,6 @@ void GalvoSimulator::Simulate(const LaserFrame& frame, float dt)
     simFrame.clear();
     frameIndex = 0;
     while(Step(frame, dt));
-	//std::string debugMsg = "Debug message: Simulated frame with " + std::to_string(simFrame.size()) + " points.\n";
-    //OutputDebugStringA(debugMsg.c_str());
 }
 
 bool GalvoSimulator::Step(const LaserFrame& frame, float dt)

@@ -10,6 +10,7 @@ class ShapeGenerator
 public:
 	ShapeGenerator(LaserFrameGenerator& generator) : m_LaserGen(generator) {}
 	void Square(Mat3 matrix, LaserColor color);
+	void Ship(Mat3 matrix, LaserColor color);
 	void SmoothSquare(Point2D center, float size, LaserColor color);
 	void ArcTest(Point2D center, float size, LaserColor color);
 private:

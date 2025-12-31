@@ -3,37 +3,49 @@
 #include "LaserFrameGenerator.h"
 #include "LaserColor.h"
 #include "Shapes.h" 
+#include "Context.h"
 
 
-GameContext::GameContext(LaserFrameGenerator& laserGen, InputManager& inputManager, ShapeGenerator& shapeGen) :
-    m_laserGen(laserGen),
-    m_inputManager(inputManager),
-    m_shapeGen(shapeGen),
-    m_WorldMatrix(),
-    m_MousePos(Point2D(0.0f, 0.0f)),
-    m_deltaT(0.0f)
-{
 
-}
-
-void GameContext::UpdatePools()
-{
-    m_BulletPool.UpdateAll(m_deltaT);
-    m_AsteroidPool.UpdateAll(m_deltaT);
-    m_ShipPool.UpdateAll(*this);
-}
-void GameContext::DrawPools()
-{
-    m_ShipPool.DrawAll(*this);
-}
 
 void Ship::Update(GameContext& context)
 {
-
+	m_Pos += m_Vel * context.GetDeltaTime();
+	m_Angle += m_AngVel * context.GetDeltaTime();
 }
 void Ship::Draw(GameContext& context)
 {
-    context.m_shapeGen.Square(m_ObjectMatrix, m_color);
+    Mat3 matrix = Mat3::Translation(m_Pos.x, m_Pos.y) * Mat3::Rotation(m_Angle) * Mat3::Scale(1.0f, 1.0f);
+    context.m_shapeGen.Ship(matrix, m_color);
+}
+
+void Ship::Shoot(GameContext& context)
+{
+    Bullet b;
+    b.m_Pos = m_Pos;
+    b.m_Vel = { std::cos(m_Angle) * 5.0f, std::sin(m_Angle) * 5.0f };
+    b.m_Lifetime = 2.0f;
+    context.m_BulletPool.Spawn(b);
+}
+
+void Ship::BindControls(GameContext& context)
+{
+    context.events.Subscribe("TurnLeft", [&] () { m_AngVel -= 0.01f; });
+    context.events.Subscribe("TurnRight", [&] () { m_AngVel += 0.01f; });
+    context.events.Subscribe("Thrust", [&] () { m_Vel += ForwardVector() * 0.01f; });
+    context.events.Subscribe("Brake", [&] () { m_Vel *= 0.95f; });
+    context.events.Subscribe("Fire", [&] () { Shoot(context); });
+}
+
+void BulletPool::DrawAll(GameContext& context)
+{
+    for (int i = 0; i < activeCount; i++)
+    {
+        Bullet& b = bullets[i];
+        ShapeGenerator& shapeGen = context.m_shapeGen;
+        Mat3 matrix = Mat3::Translation(b.m_Pos.x, b.m_Pos.y) * Mat3::Rotation(b.m_Angle) * Mat3::Scale(0.01f, 0.01f);
+        shapeGen.Square(matrix, b.m_color);
+    }
 }
 
 //Ship::Ship(float scale, LaserColor color) :
